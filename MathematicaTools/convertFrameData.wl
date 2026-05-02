@@ -31,10 +31,16 @@ d=MatrixRank[G,Tolerance->tolerance];
 (U . Sqrt[\[CapitalLambda]])\[ConjugateTranspose]
 ]
 (* Gram matrix from triple product tensor *)
-(* currently implemented when all triple products are nonzero *)
-GMfromTP[T_]:=Table[T[[i,j,1]]/(T[[i,1,1]]T[[j,1,1]])^(1/2),{i,1,Length[T]},{j,1,Length[T]}];
+(* currently implemented when SO has a vector not orthogonal to any other vector *)
+GMfromTP[T_,tolerance_:10^(-6)]:=Module[{k},
+For[k=1,k<=n,k++,
+If[!AnyTrue[Flatten@T[[All,k,k]],Abs[#]<tolerance&],Break[]];
+];
+If[k>n,k=1];
+Table[T[[i,j,k]]/(T[[i,k,k]]T[[j,k,k]])^(1/2),{i,1,Length[T]},{j,1,Length[T]}]
+]
 (* Vector list from triple product tensor *)
-(* currently implemented when all triple products are nonzero *)
+(* currently implemented when SO has a vector not orthogonal to any other vector *)
 SOfromTP[T_,tolerance_:10^(-6)]:=SOfromGM[GMfromTP[T],tolerance]
 (* Faithful matrix plot for synthesis operator or Gram matrix *)
 FrameVisualize[M_]:=MatrixPlot[Hue[(Arg[#]+Pi)/(2Pi),Abs[#]]&/@#&/@M,Frame->False]
