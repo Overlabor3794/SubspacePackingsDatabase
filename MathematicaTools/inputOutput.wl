@@ -16,9 +16,9 @@ importPacking[d_,n_,filename_String,OptionsPattern[]]:=Module[{plist},
 plist=SetPrecision[Import[filename,"List"],OptionValue[Precision]];
 SOfromGoS[plist,{d,n}]
 ]
-importPacking[filename_String,OptionsPattern[]]:=Module[{d,n},
+importPacking[filename_String,opts:OptionsPattern[]]:=Module[{d,n},
 {d,n}=extractDimensions[filename];
-importPacking[d,n,filename,OptionValue[Precision]]
+importPacking[d,n,filename,opts]
 ]
 (* Export .gos file *)
 exportPacking[Phi_,filename_String]:=Export[filename,GoSfromSO[Phi],"List"]

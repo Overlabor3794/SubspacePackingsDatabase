@@ -9,7 +9,7 @@ Options[distinctTPfromSO]={Tolerance->10^(-6)};
 distinctTPfromSO[Phi_,OptionsPattern[]]:=DeleteDuplicates[Chop[Flatten[TPfromSO[Phi]]],Abs[#1-#2]<OptionValue[Tolerance]&];
 (* Number of distict triple products, including degenerate ones *)
 Options[numberTPfromSO]={Tolerance->10^(-6)};
-numberTPfromSO[Phi_,OptionsPattern[]]:=Length[distinctTPfromSO[Phi,OptionValue[Tolerance]]];
+numberTPfromSO[Phi_,OptionsPattern[]]:=Length[distinctTPfromSO[Phi,Tolerance->OptionValue[Tolerance]]];
 (* Moments [sum of powers of triple products] *)
 momentfromSO[Phi_,m_]:=Plus@@(Flatten[TPfromSO[Phi]]^m);
 (* Nondiagonal moments [sum of powers of totally nondiagonal triple products] *)

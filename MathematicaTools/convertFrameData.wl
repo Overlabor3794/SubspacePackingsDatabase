@@ -44,7 +44,7 @@ Table[T[[i,j,k]]/(T[[i,k,k]]T[[j,k,k]])^(1/2),{i,1,Length[T]},{j,1,Length[T]}]
 (* Vector list from triple product tensor *)
 (* currently implemented when SO has a vector not orthogonal to any other vector *)
 Options[SOfromTP]={Tolerance->10^(-6)};
-SOfromTP[T_,OptionsPattern[]]:=SOfromGM[GMfromTP[T],OptionValue[Tolerance]]
+SOfromTP[T_,OptionsPattern[]]:=SOfromGM[GMfromTP[T],Tolerance->OptionValue[Tolerance]]
 (* Faithful matrix plot for synthesis operator or Gram matrix *)
 FrameVisualize[M_]:=MatrixPlot[Hue[(Arg[#]+Pi)/(2Pi),Abs[#]]&/@#&/@M,Frame->False]
 (* Game of Sloanes representation of a synthesis operator *)
