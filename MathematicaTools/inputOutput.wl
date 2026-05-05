@@ -24,7 +24,7 @@ exportPacking[Phi_,filename_String]:=Export[filename,GoSfromSO[Phi],"List"]
 exportPacking[Phi_,labels_List]:=Module[{d,n,numberTP,filename},
 {d,n}=ToString/@Dimensions[Phi];
 numberTP=ToString@numberTPfromSO@N[phi];
-filename=labels[[1]]<>"_"<>d<>"x"<>n<>"_"<>labels[[2]]<>"_"<>numberTP<>".gos";
+filename=labels[[1]]<>"_"<>d<>"x"<>n<>"_"<>numberTP<>labels[[2]]<>".gos";
 exportPacking[Phi,filename]
 ]/;MatchQ[labels,{_String,_String}]
 (* Import .tp or .exa file *)
