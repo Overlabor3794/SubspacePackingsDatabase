@@ -37,7 +37,7 @@ sudo apt install sagemath
 - Open terminal
 - Navigate to the script directory:
 ```bash
-cd /path/to/your/project
+cd /path/to/sage/folder
 ```
 
 - Run the script:
@@ -61,7 +61,7 @@ wsl sage SymPGoSKopp.sage
 Relevant lines in the script:
 
 ```sage
-folder = "Packings"
+folder = "../Packings"
 prefix = f"etf_{d}x{n}"
 tol = 1e-5
 ```
