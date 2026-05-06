@@ -8,12 +8,11 @@
 (* Coherence of a sythesis operator Phi *)
 Coherence[Phi_]:=Module[{V},
 V=Phi\[ConjugateTranspose];
-Max[Flatten[Table[Abs[V[[i]]\[Conjugate] . V[[j]]]/(Norm[V[[i]]]Norm[V[[j]]]),{i,1,Length[V]},{j,i+1,Length[V]}]]]
+Max[Flatten[Table[Abs[V[[i]]\[Conjugate].V[[j]]]/(Norm[V[[i]]]Norm[V[[j]]]),{i,1,Length[V]},{j,i+1,Length[V]}]]]
 ]
 (* p-frame potential of a sythesis operator Phi *)
-pFramePotential[Phi_,p_]:=Module[{V},
-V=Phi\[ConjugateTranspose];
-2Sum[(Abs[V[[i]]\[Conjugate] . V[[j]]]/(Norm[V[[i]]]Norm[V[[j]]]))^p,{i,1,Length[V]},{j,i+1,Length[V]}]
+pFramePotential[Phi_,p_]:=Module[{V=Phi\[ConjugateTranspose]},
+2Sum[(Abs[V[[i]]\[Conjugate].V[[j]]]/(Norm[V[[i]]]Norm[V[[j]]]))^p,{i,1,Length[V]},{j,i+1,Length[V]}]
 ]
 (* Welch bound [lower bound on the coherence], acheived if and only if Phi is an equiangular tight frame *)
 Welch[d_,n_]:=Sqrt[(n-d)/(d(n-1))]
@@ -21,38 +20,46 @@ Welch[d_,n_]:=Sqrt[(n-d)/(d(n-1))]
 
 (* Values of d and n should be set before running this block. *)
 (* variable vector list *)
-PhiVar=Table[a[i,j]+b[i,j]I,{i,1,d},{j,1,n}];
+PhiVar[d_,n_]:=Table[a[i,j]+b[i,j]I,{i,1,d},{j,1,n}];
 (* list of initial values for variables *)
-varcons[Phi0_]:=Join[Transpose[{Flatten[Table[a[i,j],{i,1,d},{j,1,n}]],Re[Flatten[Phi0]]}],
-Transpose[{Flatten[Table[b[i,j],{i,1,d},{j,1,n}]],Im[Flatten[Phi0]]}]
+varcons[Phi0_]:=Module[{d,n},
+{d,n}=Dimensions[Phi0];
+Join[
+Transpose@{Flatten@Table[a[i,j],{i,1,d},{j,1,n}],Re[Flatten[Phi0]]},
+Transpose@{Flatten@Table[b[i,j],{i,1,d},{j,1,n}],Im[Flatten[Phi0]]}
+]
 ]
 (* minimize p-frame potential with QuasiNewton *)
 (* vector list, p, options *)
-MinPhiQNp[Phi0_,p_,opts:OptionsPattern[]]:=Module[{min},
-min=FindMinimum[pFramePotential[PhiVar,p],varcons[Phi0],
+MinPhiQNp[Phi0_,p_,opts:OptionsPattern[]]:=Module[{d,n,min},
+{d,n}=Dimensions[Phi0];
+min=FindMinimum[pFramePotential[PhiVar[d,n],p],varcons[Phi0],
 opts,Method->"QuasiNewton",MaxIterations->1000,WorkingPrecision->MachinePrecision];
-{min[[1]],PhiVar/.min[[2]]}
+{min[[1]],PhiVar[d,n]/.min[[2]]}
 ]
 (* minimize coherence with PrincipalAxis [OFTEN FAILS] *)
 (* vector list, options *)
-MinPhiPA[Phi0_,opts:OptionsPattern[]]:=Module[{min},
-min=FindMinimum[Coherence[PhiVar],varcons[Phi0],
+MinPhiPA[Phi0_,opts:OptionsPattern[]]:=Module[{d,n,min},
+{d,n}=Dimensions[Phi0];
+min=FindMinimum[Coherence[PhiVar[d,n]],varcons[Phi0],
 opts,Method->"PrincipalAxis",MaxIterations->Automatic,WorkingPrecision->MachinePrecision];
-{min[[1]],PhiVar/.min[[2]]}
+{min[[1]],PhiVar[d,n]/.min[[2]]}
 ]
 (* random seed vector list *)
 rand[]:=RandomReal[NormalDistribution[],{d,n}]+RandomReal[NormalDistribution[],{d,n}]I
+rand[d_,n_]:=RandomReal[NormalDistribution[],{d,n}]+RandomReal[NormalDistribution[],{d,n}]I
 (* ETF conditions *)
-tightnessIdealGenerators=Flatten[Table[PhiVar[[All,k]]-(d/n)Sum[(PhiVar[[All,j]]\[Conjugate] . PhiVar[[All,k]])PhiVar[[All,j]],{j,1,n}],{k,1,n}]];
-equiangularWelchIdealGenerators=Flatten[
-Table[(PhiVar[[All,i]]\[Conjugate] . PhiVar[[All,j]])(PhiVar[[All,j]]\[Conjugate] . PhiVar[[All,i]])-Welch[d,n]^2,{i,1,n},{j,i+1,n}]];
-unitNormIdealGenerators=Table[PhiVar[[All,i]]\[Conjugate] . PhiVar[[All,i]]-1,{i,1,n}];
+tightnessIdealGenerators[d_,n_]:=Flatten[Table[PhiVar[d,n][[All,k]]-(d/n)Sum[(PhiVar[d,n][[All,j]]\[Conjugate].PhiVar[d,n][[All,k]])PhiVar[d,n][[All,j]],{j,1,n}],{k,1,n}]];
+equiangularWelchIdealGenerators[d_,n_]:=Flatten[
+Table[(PhiVar[d,n][[All,i]]\[Conjugate].PhiVar[d,n][[All,j]])(PhiVar[d,n][[All,j]]\[Conjugate].PhiVar[d,n][[All,i]])-Welch[d,n]^2,{i,1,n},{j,i+1,n}]];
+unitNormIdealGenerators[d_,n_]:=Table[PhiVar[d,n][[All,i]]\[Conjugate].PhiVar[d,n][[All,i]]-1,{i,1,n}];
 (* The functions below attempt to refine the precision of ETFs using the equations an ETF satisfies.
 They currently do not work very well. You should use MinPhiQNp with p=4 instead [or figure out how to improve this]. *)
 Options[etfRefine]={WorkingPrecision->MachinePrecision,TightnessIdealGenerators->False};
-etfRefine[Phi0_,OptionsPattern[]]:=Module[{idealGenerators,TID},
-TID=If[OptionValue[TightnessIdealGenerators],tightnessIdealGenerators,{}];
-idealGenerators=Join[unitNormIdealGenerators,equiangularWelchIdealGenerators,TID];
-PhiVar/.FindRoot[idealGenerators . RandomInteger[10,{Length[idealGenerators],2d n}],varcons[Phi0],
+etfRefine[Phi0_,OptionsPattern[]]:=Module[{d,n,idealGenerators,TID},
+{d,n}=Dimensions[Phi0];
+TID=If[OptionValue[TightnessIdealGenerators],tightnessIdealGenerators[d,n],{}];
+idealGenerators=Join[unitNormIdealGenerators[d,n],equiangularWelchIdealGenerators[d,n],TID];
+PhiVar[d,n]/.FindRoot[idealGenerators.RandomInteger[10,{Length[idealGenerators],2d n}],varcons[Phi0],
 WorkingPrecision->OptionValue[WorkingPrecision]]
 ]
