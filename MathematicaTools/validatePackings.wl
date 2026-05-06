@@ -27,7 +27,7 @@ files = FileNameTake /@ FileNames["*.tp", packingsDir];
 Do[
  Print["=============== ", file, " ==============="];
  {d, n} = extractDimensions[file];
- GM = GMfromTP@importExactTPdirect[file];
+ GM = GMfromTP@importExactTP[file];
  If[N@Abs@GM != 
    N[ConstantArray[
       Welch[d, n], {n, n}] + (1 - Welch[d, n]) IdentityMatrix[n]], 
