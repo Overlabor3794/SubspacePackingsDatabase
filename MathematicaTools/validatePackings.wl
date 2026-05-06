@@ -14,21 +14,20 @@ packingsDir =
 
 
 (* .gos files *)
-files = Most[FileNameTake /@ FileNames["*.gos", packingsDir]];
+files = FileNameTake /@ FileNames["etf*.gos", packingsDir];
 Do[
  Print["=============== ", file, " ==============="];
  {d, n} = extractDimensions[file];
  SO = importPacking[file];
  If[MatrixRank@SO != d, Print["Rank test fails"]];
  If[RootApproximant@Coherence@N[SO] != Welch[d, n], 
-  Print["Coherence test fails"]];
- ,
+  Print["Coherence test fails"]],
  {file, files}
  ]
 
 
 (* .tp files *)
-files = FileNameTake /@ FileNames["*.tp", packingsDir];
+files = FileNameTake /@ FileNames["etf*.tp", packingsDir];
 Do[
  Print["=============== ", file, " ==============="];
  {d, n} = extractDimensions[file];
@@ -36,14 +35,13 @@ Do[
  If[N@Abs@GM != 
    N[ConstantArray[
       Welch[d, n], {n, n}] + (1 - Welch[d, n]) IdentityMatrix[n]], 
-  Print["Gram matrix test fails"]]
- ,
+  Print["Gram matrix test fails"]],
  {file, files}
- ]
+  ]
 
 
 (* .exa files *)
-files = FileNameTake /@ FileNames["*.exa", packingsDir];
+files = FileNameTake /@ FileNames["etf*.exa", packingsDir];
 Do[
  Print["=============== ", file, " ==============="];
  {d, n} = extractDimensions[file];
@@ -51,7 +49,6 @@ Do[
  If[N@Abs@GM != 
    N[ConstantArray[
       Welch[d, n], {n, n}] + (1 - Welch[d, n]) IdentityMatrix[n]], 
-  Print["Gram matrix test fails"]]
- ,
+  Print["Gram matrix test fails"]],
  {file, files}
  ]
