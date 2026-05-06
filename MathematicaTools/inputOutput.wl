@@ -29,7 +29,15 @@ filename=labels[[1]]<>"_"<>d<>"x"<>n<>"_"<>numberTP<>labels[[2]]<>".gos";
 exportPacking[Phi,filename]
 ]/;MatchQ[labels,{_String,_String}]
 (* Import .tp or .exa file *)
-importExactTPdirect[filename_]:=arrayFromPositionMap[ToExpression/@Import[filename,"List"]]
-importExactTP[filename_]:=TPfromTPslice[arrayFromPositionMap[ToExpression/@Import[filename,"List"]]]
+importExactTP[filename_]:=Module[{},
+If[StringMatchQ[filename,"*.tp"],
+Return[arrayFromPositionMap[ToExpression/@Import[filename,"List"]]]
+];
+If[StringMatchQ[filename,"*.exa"],
+TPfromTPslice[arrayFromPositionMap[ToExpression /@ Import[filename, "List"]]],
+Message[importExactTP::FileName,filename]
+]
+]
+importExactTP::FileName="`1` is an invalid file name; *.tp or *.exa expected.";
 (* Export .exa file *)
 exportExactTP[Texact_,filename_]:=Export[filename,arrayPositionMap[Texact],"List"]
