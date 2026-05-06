@@ -202,15 +202,12 @@ if not all_ok:
                 trsymp.append(g)
         print("\n====================== Final Result ======================")
         print("Order of symmetric group:", len(trsymp))
-
-    elif Aut.order() < 1000 and Aut.order() >= 100 and d*d==n:  # Threshold for checking cycles, only for SIC case (d^2=n)
-        cycles = [g for g in Aut if g.cycle_type() == [d]*d or g.cycle_type() == [n] ]  # Only check d-cycles, n-cycles
-        trans=[]
-        for g in cycles:
-            if preserves_triple_product(g, T, tol):
-                print(" Passes for cycle:", g)
-                trans.append(g(0))
-                
+    elif Aut.order()>=100 and Aut.order() < 100000: # Threshold for prints
+        trsymp=[]
+        print("=== Small Group : Checking Elements ===")
+        for g in Aut:
+            if  preserves_triple_product(g, T, tol):
+                print(" Passes for element:", g)
+                trsymp.append(g)
         print("\n====================== Final Result ======================")
-        trans.append(0) 
-        print(sorted(list(set(trans))))
+        print("Order of symmetric group:", len(trsymp))
