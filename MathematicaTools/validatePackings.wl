@@ -4,6 +4,11 @@
 (* Currently valid for ETFs only *)
 
 
+Get[FileNameJoin[NotebookDirectory[],"convertFrameData.wl"]];
+Get[FileNameJoin[NotebookDirectory[],"minimizationSetup.wl"]];
+Get[FileNameJoin[NotebookDirectory[],"inputOutput.wl"]];
+
+
 packingsDir = 
   FileNameJoin[{ParentDirectory@NotebookDirectory[], "Packings"}];
 
