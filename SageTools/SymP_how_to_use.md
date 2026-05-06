@@ -155,8 +155,8 @@ All generators preserve triple product
 
 If some generators fail:
 
-#### Small groups: (currently set to less than 100, chnage in part 7 to update)
-- The script checks **all elements**
+#### Small groups: (currently set to less than 100000, chnage in part 7 to update)
+- The script checks **all elements** in Aut
 ```text
 === Small Group : Checking Elements ===
 ```
@@ -168,14 +168,6 @@ Order of symmetric group: <integer>
 ```
 
 ---
-
-#### Intermediate groups (special cases like n = d²):
-
-- Checks selected permutations (cycles)
-- Outputs valid transformations
-
----
-
 ### Final Interpretation
 
 - If all generators pass → automorphism group is valid  
