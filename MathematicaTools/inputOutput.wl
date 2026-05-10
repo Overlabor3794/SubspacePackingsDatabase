@@ -36,7 +36,7 @@ importPacking[filename_, fmt_, opts : OptionsPattern[]] :=
    ]
   ]
 ResourceFunction["AddCodeCompletion"]["importPacking"][
-  "RelativeFileName"];
+  "RelativeFileName", {"TP", "Position map", "TP slice"}];
 importPacking::nffil = "File `1` not found during Import";
 importPacking::FileName = 
   "`1` is an invalid file name; *.gos, *.tp, or *.exa expected";
