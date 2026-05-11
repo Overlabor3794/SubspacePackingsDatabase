@@ -4,11 +4,11 @@
 (* Currently valid for ETFs only *)
 
 
-Get[FileNameJoin[NotebookDirectory[],"convertFrameData.wl"]];
-Get[FileNameJoin[NotebookDirectory[],"exactification.wl"]];
-Get[FileNameJoin[NotebookDirectory[],"minimizationSetup.wl"]];
-Get[FileNameJoin[NotebookDirectory[],"inputOutput.wl"]];
-Get[FileNameJoin[NotebookDirectory[],"frameInvariants.wl"]];
+Get[FileNameJoin[NotebookDirectory[], "convertFrameData.wl"]];
+Get[FileNameJoin[NotebookDirectory[], "exactification.wl"]];
+Get[FileNameJoin[NotebookDirectory[], "minimizationSetup.wl"]];
+Get[FileNameJoin[NotebookDirectory[], "inputOutput.wl"]];
+Get[FileNameJoin[NotebookDirectory[], "frameInvariants.wl"]];
 
 
 packingsDir = 
@@ -21,7 +21,7 @@ packingsDir =
 (* validatePackings["*.gos"] tests .gos files *)
 (* validatePackings["*.tp"]  tests .tp  files *)
 (* validatePackings["*.exa"] tests .exa files *)
-validatePackings[pattern_String] := 
+validatePackings[pattern_String, opts:OptionsPattern[]] := 
  Module[{validators, files, validfiles, basenames},
   files = FileNameTake /@ FileNames[pattern, packingsDir];
   validfiles = 
@@ -37,15 +37,16 @@ validatePackings[pattern_String] :=
     "exa" -> exaValidate|>;
   Do[
    Print["=============== ", basename, " ==============="];
-   Do[If[FileBaseName[file] === basename,
-     validators[FileExtension@file]@file],
-    {file, files}],
+   validfiles = Select[files, FileBaseName[#] === basename &];
+   Do[
+     validators[FileExtension@file][file, opts],
+    {file, validfiles}],
    {basename, basenames}
    ]
   ]
-validatePackings::Pattern = 
-  "No valid files found matching pattern \"`1`\". Expected patterns \
-are \"*\" ,  \"*.gos\" ,  \"*.tp\" ,  or \"*.exa\" .";
+ResourceFunction["AddCodeCompletion"]["validatePackings"][
+  "RelativeFileName"];
+validatePackings::Pattern = "No valid files found matching \"`1`\".";
 
 
 (* The functions below are internal functions and not meant
@@ -57,52 +58,71 @@ are \"*\" ,  \"*.gos\" ,  \"*.tp\" ,  or \"*.exa\" .";
 (* Checks that the coherence is equal to the Welch bound,
    that the frame is unit-norm, that the number of distinct
    triple products is equal to the number in the file name *)
-gosValidate[filename_] := Module[{d, n, Phi},
+gosValidate[filename_, OptionsPattern[]] := Module[{d, n, Phi, pass},
   {d, n} = extractDimensions[filename];
   Phi = importPacking[filename];
-  If[RootApproximant@Coherence@N[Phi] != Welch[d, n],
-   Print[filename, ": Coherence test failed"]];
+  pass = True;
+  If[Coherence[Phi] != N@Welch[d, n],
+   Print[Style[filename, ": Coherence test failed", Red]];
+   pass = False];
   If[normalizeSO[Phi] != Phi, 
-   Print[filename, ": Unit-norm test failed"]];
+   Print[Style[filename, ": Unit-norm test failed", Red]];
+   pass = False];
   If[extractNumberTP[filename] != numberTPfromSO[Phi],
-   Print[filename, ": Number of distinct triple products test failed"]]
+   Print[Style[filename, 
+   ": Number of distinct triple products test failed", Red]];
+   pass = False];
+  If[pass, Print[filename <> ": Passed all tests"]]
   ]
 
 (* .tp files *)
 (* Validates a .tp ETF given its file name *)
-(* Checks that the Gram matrix is the Gram matrix of an ETF
-   and that the number of distinct triple products is equal
-   to the number in the file name *)
-tpValidate[filename_] := Module[{d, n, TPPM, GM},
+(* Checks that the Gram matrix is the Gram matrix of an ETF,
+   that the number of distinct triple products is equal to the
+   number in the file name, and that the contents match the
+   contents of the corresponding .exa file *)
+Options[tpValidate] = {WorkingPrecision -> MachinePrecision};
+tpValidate[filename_, OptionsPattern[]] := 
+ Module[{prec, d, n, TPPM, TP1, TP2, GM, pass},
+  prec = OptionValue[WorkingPrecision];
   {d, n} = extractDimensions[filename];
-  TPPM = ToExpression /@ Import[filename, "List"];
-  GM = GMfromTP@arrayFromPositionMap[TPPM];
-  If[N@Abs[GM] != 
-    N[ConstantArray[
-       Welch[d, n], {n, n}] + (1 - Welch[d, n]) IdentityMatrix[n]],
-   Print[filename, ":  Gram matrix test failed"]];
+  TPPM = importPacking[filename, "Position map"];
+  TPPM[[All, 2]] = N[TPPM[[All, 2]], 2*prec];
+  TP1 = arrayFromPositionMap[TPPM];
+  GM = GMfromTP[TP1];
+  pass = True;
+  If[N[Abs[GM], prec] != 
+    N[SparseArray[{{i_, i_} -> 1, {_, _} -> Welch[d, n]}, {n, n}], prec],
+   Print[Style[filename, " : Gram matrix test failed", Red]];
+   pass = False];
   If[Length[TPPM] != extractNumberTP[filename],
-   Print[filename, ":  Number of distinct triple products test failed"]]
+   Print[Style[filename, 
+   " : Number of distinct triple products test failed", Red]];
+   pass = False];
+  If[FileExistsQ[FileBaseName[filename] <> ".exa"],
+   TP2 = importPacking[FileBaseName[filename] <> ".exa", "TP slice"];
+   If[N[TP1[[1]], prec] != N[TP2, prec],
+    Print[Style[filename, 
+   " : Match against corresponding .exa file test failed", Red]];
+    pass = False];
+   ];
+  If[pass, Print[filename <> " : Passed all tests"]]
   ]
 
 (* .exa files *)
 (* Validates a .exa ETF given its file name *)
-(* Checks that the Gram matrix is the Gram matrix of an ETF
-   and that the contents match the contents of the
-   corresponding .tp file *)
-exaValidate[filename_] := Module[{d, n, TP1, TP2, GM},
+(* Checks that the Gram matrix is the Gram matrix of an ETF *)
+Options[exaValidate] = {WorkingPrecision -> MachinePrecision};
+exaValidate[filename_, OptionsPattern[]] := 
+ Module[{prec, d, n, TP, GM, pass},
+  prec = OptionValue[WorkingPrecision];
   {d, n} = extractDimensions[filename];
-  TP1 = importExactTP[filename];
-  GM = GMfromTP[TP1];
-  If[N@Abs[GM] != 
-    N[ConstantArray[
-       Welch[d, n], {n, n}] + (1 - Welch[d, n]) IdentityMatrix[n]],
-   Print[filename, ": Gram matrix test failed"]];
-  If[FileExistsQ[FileBaseName[filename] <> ".tp"],
-   TP2 = importExactTP[FileBaseName[filename] <> ".tp"];
-   If[Chop@N[TP1 - TP2] != ConstantArray[0, {n, n, n}],
-    Print[filename, 
-     ": Match against corresponding .tp file test failed"]],
-   Print[filename, ": Corresponding .tp file does not exist"]
-   ];
+  TP = N[importPacking[filename], 2*prec];
+  GM = GMfromTP[TP];
+  pass = True;
+  If[N[Abs[GM], prec] != 
+    N[SparseArray[{{i_, i_} -> 1, {_, _} -> Welch[d, n]}, {n, n}], 2*prec],
+   Print[Style[filename, ": Gram matrix test failed", Red]];
+   pass = False];
+  If[pass, Print[filename <> ": Passed all tests"]]
   ]
