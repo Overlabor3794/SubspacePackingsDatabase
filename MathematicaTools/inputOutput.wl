@@ -6,10 +6,17 @@ mf=MatrixForm;
 packingsDirectory=FileNameJoin[ParentDirectory[NotebookDirectory[]],"Packings"];
 (* Set as present working directory *)
 SetDirectory[packingsDirectory];
+
 (* Extract packing dimensions (d,n) from file name *)
-extractDimensions[filename_String]:=ToExpression[StringCases[filename,RegularExpression["(\\d+)x(\\d+)"]->{"$1","$2"}][[1]]]
+extractDimensions[filename_String] := 
+ ToExpression[StringCases[filename,
+   RegularExpression["(\\d+)x(\\d+)"] -> {"$1", "$2"}][[1]]]
+
 (* Extract the number of triple products from file name *)
-extractNumberTP[filename_String]:=ToExpression[StringCases[filename,RegularExpression["(\\d+)x(\\d+)_(\\d+)"]->{"$3"}][[1,1]]]
+extractNumberTP[filename_String] := 
+ ToExpression[StringCases[filename,
+   RegularExpression["(\\d+)x(\\d+)_(\\d+)"] -> {"$3"}][[1, 1]]]
+
 (* Function to import .gos, .tp, and .exa files *)
 (* For .gos files, the fmt argument is not applicable and is ignored if passed *)
 (* For .tp files, the available formats are "TP", which gives the full TP tensor,
@@ -98,13 +105,135 @@ exaImport[filename_, fmt_, OptionsPattern[]] := Module[{prec, TPSPM},
    ]
   ]
 
-(* Export .gos file *)
-exportPacking[Phi_,filename_String]:=Export[filename,GoSfromSO[Phi],"List"]
-exportPacking[Phi_,labels_List]:=Module[{d,n,numberTP,filename},
-{d,n}=ToString/@Dimensions[Phi];
-numberTP=ToString@numberTPfromSO@N[Phi];
-filename=labels[[1]]<>"_"<>d<>"x"<>n<>"_"<>numberTP<>labels[[2]]<>".gos";
-exportPacking[Phi,filename]
-]/;MatchQ[labels,{_String,_String}]
-(* Export .exa file *)
-exportExactTP[Texact_,filename_]:=Export[filename,arrayPositionMap[Texact],"List"]
+(* Function to export Packings *)
+(* Works with .gos, .tp, and .exa file types *)
+(* First argument can be an a frame, a triple product tensor, a triple
+   product slice, a triple product position map, or a triple product
+   slice position map *)
+(* The function uses the structure of the first argument to determine
+   how it should be exported *)
+(* If the global flag $exportPackingChecks is set to True (default),
+   then the function performs checks between the structure of the array
+   and the file name and warns with a prompt if a mismatch is detected *)
+(* The available option is Precision and is only relevant to .gos files *)
+exportPacking[array_, filename_, opts : OptionsPattern[]] := 
+ Module[{cont, dims, dim},
+  If[$exportPackingChecks && FileExistsQ[filename],
+   cont = ChoiceDialog[filename <> " already exists.\nDo you want \
+to replace it?", {"Yes" -> True, "No" -> False}];
+   If[! cont, Return[$Failed]];
+   ];
+  dims = Dimensions[array];
+  dim = Length[dims];
+  Which[
+   dim == 1, pmExport[array, filename],
+   dim == 2 && dims[[1]] < dims[[2]], gosExport[array, filename, opts],
+   dim == 2 && dims[[1]] == dims[[2]], exaExport[array, filename],
+   dim == 3 && dims[[1]] == dims[[2]] == dims[[3]], 
+   tpExport[array, filename],
+   True, Message[exportPacking::structure]
+   ]
+  ]
+ResourceFunction["AddCodeCompletion"]["exportPacking"][None, 
+  "RelativeFileName"];
+exportPacking::structure = 
+  "The structure of the first argument is inconsistent with the \
+supported file types";
+
+(* Global flag to enable or disable file name checks when exporting *)
+$exportPackingChecks = True;
+
+dimDialong[filename_] := ChoiceDialog["Incorrect dimensions detected\
+ in " <> FileNameTake[filename] <> ".\nDo you want to continue\
+ exporting?", {"Yes" -> True, "No" -> False}];
+numberTPDialong[filename_] := ChoiceDialog[
+ "Incorrect number of distinct triple products detected in " <> 
+  FileNameTake[filename] <> ".\nDo you want to continue exporting?",
+  {"Yes" -> True, "No" -> False}];
+extDialong[filename_] := ChoiceDialog["Incorrect extension detected \
+in " <> FileNameTake[filename] <> ".\nDo you want to continue \
+exporting?", {"Yes" -> True, "No" -> False}];
+
+(* Internal function to export .gos files *)
+Options[gosExport] = {Precision -> MachinePrecision};
+gosExport[Phi_, filename_, OptionsPattern[]] := Module[{cont, prec},
+  If[$exportPackingChecks,
+   If[Dimensions[Phi] != extractDimensions[filename],
+    cont = dimDialong[filename];
+    If[! cont, Return[$Failed]];
+    ];
+   If[numberTPfromSO[Phi] != extractNumberTP[filename],
+    cont = numberTPDialong[filename];
+    If[! cont, Return[$Failed]];
+    ];
+   If[FileExtension[filename] != "gos",
+    cont = extDialong[filename];
+    If[! cont, Return[$Failed]];
+    ];
+   ];
+  prec = OptionValue[Precision];
+  Export[filename, N[GoSfromSO[Phi], prec], "List"]
+  ]
+
+(* Internal function to export .tp files *)
+tpExport[TP_, filename_] := Module[{cont, TPPM},
+  If[$exportPackingChecks,
+   If[Dimensions[TP][[1]] != extractDimensions[filename][[2]],
+    cont = dimDialong[filename];
+    If[! cont, Return[$Failed]];
+    ];
+   If[FileExtension[filename] != "tp",
+    cont = extDialong[filename];
+    If[! cont, Return[$Failed]];
+    ];
+   ];
+  TPPM = arrayPositionMap[TP];
+  If[$exportPackingChecks && Length[TPPM] != extractNumberTP[filename],
+   cont = numberTPDialong[filename];
+   If[! cont, Return[$Failed]];
+   ];
+  Export[filename, TPPM, "List"]
+  ]
+
+Clear[exaExport]
+(* Internal function to export .exa files *)
+exaExport[TPS_, filename_] := Module[{cont, TPSPM},
+  If[$exportPackingChecks,
+   If[Dimensions[TPS][[1]] != extractDimensions[filename][[2]],
+    cont = dimDialong[filename];
+    If[! cont, Return[$Failed]];
+    ];
+   If[FileExtension[filename] != "exa",
+    cont = extDialong[filename];
+    If[! cont, Return[$Failed]];
+    ];
+   ];
+  TPSPM = arrayPositionMap[TPS];
+  Export[filename, TPSPM, "List"]
+  ]
+
+(* Internal function to export array position maps to .tp or \
+.exa files *)
+pmExport[PM_, filename_] := Module[{ext, dim, extcheck, cont},
+  If[$exportPackingChecks,
+   ext = FileExtension[filename];
+   dim = Length@PM[[1, 1, 1]];
+   extcheck = (ext != "tp" && ext != "exa") || (ext == "tp" && 
+       dim != 3) || (ext == "exa" && dim != 2);
+   If[extcheck,
+    cont = extDialong[filename];
+    If[! cont, Return[$Failed]];
+    ];
+   If[dim == 3,
+    If[Length[PM] != extractNumberTP[filename],
+     cont = numberTPDialong[filename];
+     If[! cont, Return[$Failed]];
+     ]
+    ];
+   If[Max@PM[[All, 1]] != extractDimensions[filename][[2]],
+    cont = dimDialong[filename];
+    If[! cont, Return[$Failed]];
+    ];
+   ];
+  Export[filename, PM, "List"]
+  ]
