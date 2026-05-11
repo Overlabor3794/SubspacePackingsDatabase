@@ -34,7 +34,8 @@ d=MatrixRank[G,Tolerance->OptionValue[Tolerance]];
 (* Gram matrix from triple product tensor *)
 (* currently implemented when SO has a vector not orthogonal to any other vector *)
 Options[GMfromTP]={Tolerance->10^(-6)};
-GMfromTP[T_,OptionsPattern[]]:=Module[{k},
+GMfromTP[T_,OptionsPattern[]]:=Module[{n,k},
+n=Dimensions[T][[1]];
 For[k=1,k<=n,k++,
 If[!AnyTrue[Flatten@T[[All,k,k]],Abs[#]<OptionValue[Tolerance]&],Break[]];
 ];
