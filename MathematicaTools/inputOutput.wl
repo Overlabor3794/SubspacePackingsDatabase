@@ -31,7 +31,7 @@ importPacking[filename_, fmt_, opts : OptionsPattern[]] :=
   ext = FileExtension[filename];
   lcfmt = ToLowerCase[fmt];
   Which[
-   ext == "gos", gosImport[filename, opts],
+   ext == "gos" || ext == "txt", gosImport[filename, opts],
    ext == "tp", tpImport[filename, lcfmt, opts],
    ext == "exa", exaImport[filename, lcfmt, opts],
    True, Message[importPacking::FileName, filename]
