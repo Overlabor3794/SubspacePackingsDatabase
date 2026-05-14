@@ -21,17 +21,16 @@ extractNumberTP[filename_String] :=
    "TP slice", which returns the TP slice *)
 (* The available option is Precision. The default is MachinePrecision for .gos 
    files, and Infinity for .tp and .exa files *)
-importPacking[filename_, opts : OptionsPattern[]] := 
- importPacking[filename, "TP", opts]
-importPacking[filename_, fmt_, opts : OptionsPattern[]] := 
- Module[{ext, lcfmt},
+importPacking[filename_String, fmt_String : "TP", 
+  d_Integer : Automatic, n_Integer : Automatic, 
+  opts : OptionsPattern[]] := Module[{ext, lcfmt},
   If[! FileExistsQ[filename],
    Message[importPacking::nffil, filename];
-   Return[]];
+   Return[$Failed]];
   ext = FileExtension[filename];
   lcfmt = ToLowerCase[fmt];
   Which[
-   ext == "gos" || ext == "txt", gosImport[filename, opts],
+   ext == "gos" || ext == "txt", gosImport[filename, d, n opts],
    ext == "tp", tpImport[filename, lcfmt, opts],
    ext == "exa", exaImport[filename, lcfmt, opts],
    True, Message[importPacking::FileName, filename]
@@ -51,11 +50,14 @@ importPacking::exaFormat =
 
 (* Internal function to import .gos files *)
 Options[gosImport] = {Precision -> MachinePrecision};
-gosImport[filename_String, OptionsPattern[]] := Module[{d, n, plist},
-  {d, n} = extractDimensions[filename];
-  plist = 
+gosImport[filename_, d_, n_, OptionsPattern[]] :=
+ Module[{dd, nn, plist},
+  plist =
    SetPrecision[Import[filename, "List"], OptionValue[Precision]];
-  SOfromGoS[plist, {d, n}]
+  If[d === Automatic || n === Automatic,
+   {dd, nn} = extractDimensions[filename],
+   {dd, nn} = {d, n}];
+  SOfromGoS[plist, {dd, nn}]
   ]
 
 (* Internal function to import .tp files *)
