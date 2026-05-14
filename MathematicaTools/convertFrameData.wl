@@ -4,8 +4,9 @@
 (* Functions to convert between vector list, Gram matrix, and triple products *)
 
 
-(* Standard shortcuts *)
-mf=MatrixForm;mp=MatrixPlot;
+Get[FileNameJoin[NotebookDirectory[], "init.wl"]];
+
+
 (* TYPES *)
 (* SO = sythesis operator = "frame" = "short, fat matrix" = matrix whose columns are frame vectors *)
 (* all columns of SO must be unit vectors *)

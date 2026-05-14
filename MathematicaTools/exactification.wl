@@ -5,8 +5,9 @@
 (* Includes exactification of triple products *)
 
 
-(* Standard shortcuts for displaying matrices *)
-mf=MatrixForm;mp=MatrixPlot;
+Get[FileNameJoin[NotebookDirectory[], "init.wl"]];
+
+
 (* Position of the minimum element of a list of distinct real numbers *)
 positionSmallest[l_]:=FirstPosition[l,Min[l]][[1]]
 (* Exactification using elementary symmetric polynomials and RootApproximant *)

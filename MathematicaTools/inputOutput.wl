@@ -1,11 +1,6 @@
 (* ::Package:: *)
 
-(* Standard shortcut *)
-mf=MatrixForm;
-(* Directory containing text files of packings *)
-packingsDirectory=FileNameJoin[ParentDirectory[NotebookDirectory[]],"Packings"];
-(* Set as present working directory *)
-SetDirectory[packingsDirectory];
+Get[FileNameJoin[NotebookDirectory[],"init.wl"]];
 
 (* Extract packing dimensions (d,n) from file name *)
 extractDimensions[filename_String] := 
@@ -139,9 +134,6 @@ ResourceFunction["AddCodeCompletion"]["exportPacking"][None,
 exportPacking::structure = 
   "The structure of the first argument is inconsistent with the \
 supported file types";
-
-(* Global flag to enable or disable file name checks when exporting *)
-$exportPackingChecks = True;
 
 dimDialong[filename_] := ChoiceDialog["Incorrect dimensions detected\
  in " <> FileNameTake[filename] <> ".\nDo you want to continue\

@@ -4,15 +4,12 @@
 (* Currently valid for ETFs only *)
 
 
+Get[FileNameJoin[NotebookDirectory[], "init.wl"]];
 Get[FileNameJoin[NotebookDirectory[], "convertFrameData.wl"]];
 Get[FileNameJoin[NotebookDirectory[], "exactification.wl"]];
 Get[FileNameJoin[NotebookDirectory[], "minimizationSetup.wl"]];
 Get[FileNameJoin[NotebookDirectory[], "inputOutput.wl"]];
 Get[FileNameJoin[NotebookDirectory[], "frameInvariants.wl"]];
-
-
-packingsDir = 
-  FileNameJoin[{ParentDirectory@NotebookDirectory[], "Packings"}];
 
 
 (* Validates all ETF files with file name matching pattern and
@@ -23,10 +20,10 @@ packingsDir =
 (* validatePackings["*.exa"] tests .exa files *)
 validatePackings[pattern_String, opts:OptionsPattern[]] := 
  Module[{validators, files, validfiles, basenames},
-  files = FileNameTake /@ FileNames[pattern, packingsDir];
+  files = FileNameTake /@ FileNames[pattern, $packingsDirectory];
   validfiles = 
    FileNameTake /@ 
-    FileNames[{"etf*.gos", "etf*.tp", "etf*.exa"}, packingsDir];
+    FileNames[{"etf*.gos", "etf*.tp", "etf*.exa"}, $packingsDirectory];
   files = Intersection[files, validfiles];
   If[files == {},
    Message[validatePackings::Pattern, pattern];
