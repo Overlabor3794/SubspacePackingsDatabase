@@ -113,13 +113,16 @@ tpValidate[filename_, OptionsPattern[]] :=
 (* Checks that the Gram matrix is the Gram matrix of an ETF *)
 (* If corresponding .tp file exists, then all checks are skipped
    because tpValidate compares with the existing .tp file *)
-Options[exaValidate] = {WorkingPrecision -> MachinePrecision};
+Options[exaValidate] = {WorkingPrecision -> MachinePrecision,
+   exaForceTest -> False};
 exaValidate[filename_, OptionsPattern[]] := 
- Module[{tpfilename, prec, d, n, TP, GM, pass},
-  tpfilename = FileBaseName[filename] <> ".tp";
-  If[FileExistsQ[tpfilename],
+ Module[{prec, d, n, TP, GM, pass},
+  If[FileExistsQ[FileBaseName[filename] <> ".tp" &&
+   ! OptionValue[exaForceTest]],
    tpExistsMessage[filename];
    Return[]];
+  prec = OptionValue[WorkingPrecision];
+  {d, n} = extractDimensions[filename];
   TP = importPacking[filename, Precision -> 2*prec];
   GM = GMfromTP[TP];
   pass = True;
