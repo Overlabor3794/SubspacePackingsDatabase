@@ -150,19 +150,16 @@ exporting?", {"Yes" -> True, "No" -> False}];
 
 (* Internal function to export .gos files *)
 Options[gosExport] = {Precision -> MachinePrecision};
-gosExport[Phi_, filename_, OptionsPattern[]] := Module[{cont, prec},
+gosExport[Phi_, filename_, OptionsPattern[]] := Module[{prec},
   If[$exportPackingChecks,
    If[Dimensions[Phi] != extractDimensions[filename],
-    cont = dimDialong[filename];
-    If[! cont, Return[$Failed]];
+    If[! dimDialong[filename], Return[$Failed]];
     ];
    If[numberTPfromSO[Phi] != extractNumberTP[filename],
-    cont = numberTPDialong[filename];
-    If[! cont, Return[$Failed]];
+    If[! numberTPDialong[filename], Return[$Failed]];
     ];
    If[FileExtension[filename] != "gos",
-    cont = extDialong[filename];
-    If[! cont, Return[$Failed]];
+    If[! extDialong[filename], Return[$Failed]];
     ];
    ];
   prec = OptionValue[Precision];
@@ -170,63 +167,63 @@ gosExport[Phi_, filename_, OptionsPattern[]] := Module[{cont, prec},
   ]
 
 (* Internal function to export .tp files *)
-tpExport[TP_, filename_] := Module[{cont, TPPM},
+tpExport[TP_, filename_] := Module[{d, n, TPPM},
   If[$exportPackingChecks,
-   If[Dimensions[TP][[1]] != extractDimensions[filename][[2]],
-    cont = dimDialong[filename];
-    If[! cont, Return[$Failed]];
+   n = Dimensions[TP][[1]];
+   d = n / ((n - 1) TP[[1, 2, 2]] + 1);
+   If[{d, n} != extractDimensions[filename],
+    If[! dimDialong[filename], Return[$Failed]];
     ];
    If[FileExtension[filename] != "tp",
-    cont = extDialong[filename];
-    If[! cont, Return[$Failed]];
+    If[! extDialong[filename], Return[$Failed]];
     ];
    ];
   TPPM = arrayPositionMap[TP];
   If[$exportPackingChecks && Length[TPPM] != extractNumberTP[filename],
-   cont = numberTPDialong[filename];
-   If[! cont, Return[$Failed]];
+   If[! numberTPDialong[filename], Return[$Failed]];
    ];
   Export[filename, TPPM, "List"]
   ]
 
-Clear[exaExport]
 (* Internal function to export .exa files *)
-exaExport[TPS_, filename_] := Module[{cont, TPSPM},
+exaExport[TPS_, filename_] := Module[{d, n, TPSPM},
   If[$exportPackingChecks,
-   If[Dimensions[TPS][[1]] != extractDimensions[filename][[2]],
-    cont = dimDialong[filename];
-    If[! cont, Return[$Failed]];
+   n = Dimensions[TPS][[1]];
+   d = n / ((n - 1) TP[[2, 2]] + 1);
+   If[{d, n} != extractDimensions[filename],
+    If[! dimDialong[filename], Return[$Failed]];
     ];
    If[FileExtension[filename] != "exa",
-    cont = extDialong[filename];
-    If[! cont, Return[$Failed]];
+    If[! extDialong[filename], Return[$Failed]];
     ];
    ];
   TPSPM = arrayPositionMap[TPS];
   Export[filename, TPSPM, "List"]
   ]
 
-(* Internal function to export array position maps to .tp or \
-.exa files *)
-pmExport[PM_, filename_] := Module[{ext, dim, extcheck, cont},
+(* Internal function to export array position maps to .tp or .exa files *)
+pmExport[PM_, filename_] := Module[{dim, ext, extcheck, d, n, \[Alpha]},
   If[$exportPackingChecks,
-   ext = FileExtension[filename];
    dim = Length@PM[[1, 1, 1]];
+   ext = FileExtension[filename];
    extcheck = (ext != "tp" && ext != "exa") || (ext == "tp" && 
        dim != 3) || (ext == "exa" && dim != 2);
    If[extcheck,
-    cont = extDialong[filename];
-    If[! cont, Return[$Failed]];
+    If[! extDialong[filename], Return[$Failed]];
     ];
-   If[dim == 3,
+   n = Max@PM[[All, 1]];
+   Which[
+    dim == 2,
+    \[Alpha] = {2, 2} /. Flatten[Thread /@ PM];,
+    dim == 3,
+    \[Alpha] = {1, 2, 2} /. Flatten[Thread /@ PM];
     If[Length[PM] != extractNumberTP[filename],
-     cont = numberTPDialong[filename];
-     If[! cont, Return[$Failed]];
+     If[! numberTPDialong[filename], Return[$Failed]];
      ]
-    ];
-   If[Max@PM[[All, 1]] != extractDimensions[filename][[2]],
-    cont = dimDialong[filename];
-    If[! cont, Return[$Failed]];
+   ];
+   d = n/((n - 1) \[Alpha] + 1);
+   If[{d, n} != extractDimensions[filename],
+    If[! dimDialong[filename], Return[$Failed]];
     ];
    ];
   Export[filename, PM, "List"]
