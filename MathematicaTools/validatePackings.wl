@@ -60,16 +60,15 @@ gosValidate[filename_, OptionsPattern[]] := Module[{d, n, Phi, pass},
   Phi = importPacking[filename];
   pass = True;
   If[Coherence[Phi] != N@Welch[d, n],
-   Print[Style[filename, ": Coherence test failed", Red]];
+   coherenceMessage[filename];
    pass = False];
   If[normalizeSO[Phi] != Phi, 
-   Print[Style[filename, ": Unit-norm test failed", Red]];
+   unitNormMessage[filename];
    pass = False];
   If[extractNumberTP[filename] != numberTPfromSO[Phi],
-   Print[Style[filename, 
-   ": Number of distinct triple products test failed", Red]];
+   numberTPMessage[filename];
    pass = False];
-  If[pass, Print[filename <> ": Passed all tests"]]
+  If[pass, passMessage[filename]]
   ]
 
 (* .tp files *)
@@ -83,27 +82,30 @@ tpValidate[filename_, OptionsPattern[]] :=
  Module[{prec, d, n, TPPM, TP1, TP2, GM, pass},
   prec = OptionValue[WorkingPrecision];
   {d, n} = extractDimensions[filename];
-  TPPM = importPacking[filename, "Position map"];
-  TPPM[[All, 2]] = N[TPPM[[All, 2]], 2*prec];
+  TPPM = importPacking[filename, "Position map", Precision -> 2*prec];
   TP1 = arrayFromPositionMap[TPPM];
   GM = GMfromTP[TP1];
   pass = True;
   If[N[Abs[GM], prec] != 
     N[SparseArray[{{i_, i_} -> 1, {_, _} -> Welch[d, n]}, {n, n}], prec],
-   Print[Style[filename, " : Gram matrix test failed", Red]];
+   coherenceMessage[filename <> " "];
+   pass = False];
+  If[N[GM, prec] != N[GM\[ConjugateTranspose], prec],
+   GMHermitianMessage[filename <> " "];
+   pass = False];
+  If[N[GM . GM, prec] != N[n/d GM, prec],
+   GMProjectionMessage[filename <> " "];
    pass = False];
   If[Length[TPPM] != extractNumberTP[filename],
-   Print[Style[filename, 
-   " : Number of distinct triple products test failed", Red]];
+   numberTPMessage[filename <> " "];
    pass = False];
   If[FileExistsQ[FileBaseName[filename] <> ".exa"],
    TP2 = importPacking[FileBaseName[filename] <> ".exa", "TP slice"];
    If[N[TP1[[1]], prec] != N[TP2, prec],
-    Print[Style[filename, 
-   " : Match against corresponding .exa file test failed", Red]];
+    exaMatchMessage[filename <> " "];
     pass = False];
    ];
-  If[pass, Print[filename <> " : Passed all tests"]]
+  If[pass, passMessage[filename <> " "]]
   ]
 
 (* .exa files *)
@@ -119,7 +121,16 @@ exaValidate[filename_, OptionsPattern[]] :=
   pass = True;
   If[N[Abs[GM], prec] != 
     N[SparseArray[{{i_, i_} -> 1, {_, _} -> Welch[d, n]}, {n, n}], 2*prec],
-   Print[Style[filename, ": Gram matrix test failed", Red]];
+   coherenceMessage[filename];
    pass = False];
-  If[pass, Print[filename <> ": Passed all tests"]]
+  If[pass, passMessage[filename]]
   ]
+
+failMessage[message_] := Print[Style[message, Red]]
+coherenceMessage[filename_] := failMessage[filename <> ": Coherence is not equal to Welch bound"]
+unitNormMessage[filename_] := failMessage[filename <> ": Frame vectors are not of unit norm"]
+numberTPMessage[filename_] := failMessage[filename <> ": Number of distinct triple products does not match file name"]
+GMHermitianMessage[filename_] := failMessage[filename <> ": Gram matrix is not Hermitian"]
+GMProjectionMessage[filename_] := failMessage[filename <> ": Gram matrix does not satisfy G^2 = n/d G"]
+exaMatchMessage[filename_] := failMessage[filename <> ": Mismatch against corresponding .exa file"]
+passMessage[filename_] := Print[filename <> ": Passed all tests"]
