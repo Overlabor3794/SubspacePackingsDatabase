@@ -18,7 +18,11 @@ Get[FileNameJoin[NotebookDirectory[], "frameInvariants.wl"]];
 (* validatePackings["*.gos"] tests .gos files *)
 (* validatePackings["*.tp"]  tests .tp  files *)
 (* validatePackings["*.exa"] tests .exa files *)
-validatePackings[pattern_String, opts:OptionsPattern[]] := 
+(* Available options are Tolerance and exaForceTest *)
+(* Tolerance is used in tpValidate and exaValidate.
+   Default is MachinePrecision *)
+(* exaForceTest is used in exaValidate. Default is False *)
+validatePackings[pattern_String, opts : OptionsPattern[]] := 
  Module[{files, basenames, validators, validfiles, validator},
   files = FileNameTake /@ FileNames[pattern, $packingsDirectory];
   files = Select[files, 
@@ -76,23 +80,23 @@ gosValidate[filename_, OptionsPattern[]] := Module[{d, n, Phi, pass},
    that the number of distinct triple products is equal to the
    number in the file name, and that the contents match the
    contents of the corresponding .exa file *)
-Options[tpValidate] = {WorkingPrecision -> MachinePrecision};
+Options[tpValidate] = {Tolerance -> MachinePrecision};
 tpValidate[filename_, OptionsPattern[]] := 
- Module[{prec, d, n, TPPM, TP1, TP2, GM, pass},
-  prec = OptionValue[WorkingPrecision];
+ Module[{tol, d, n, TPPM, TP1, TP2, GM, pass},
+  tol = OptionValue[Tolerance];
   {d, n} = extractDimensions[filename];
-  TPPM = importPacking[filename, "Position map", Precision -> 2*prec];
+  TPPM = importPacking[filename, "Position map", Precision -> 2*tol];
   TP1 = arrayFromPositionMap[TPPM];
   GM = GMfromTP[TP1];
   pass = True;
-  If[N[Abs[GM], prec] != 
-    N[SparseArray[{{i_, i_} -> 1, {_, _} -> Welch[d, n]}, {n, n}], prec],
+  If[N[Abs[GM], tol] != 
+    N[SparseArray[{{i_, i_} -> 1, {_, _} -> Welch[d, n]}, {n, n}], tol],
    coherenceMessage[filename <> " "];
    pass = False];
-  If[N[GM, prec] != N[GM\[ConjugateTranspose], prec],
+  If[! HermitianMatrixQ[GM, Tolerance -> tol],
    GMHermitianMessage[filename <> " "];
    pass = False];
-  If[N[GM . GM, prec] != N[n/d GM, prec],
+  If[N[GM . GM, tol] != N[n/d GM, tol],
    GMProjectionMessage[filename <> " "];
    pass = False];
   If[Length[TPPM] != extractNumberTP[filename],
@@ -100,7 +104,7 @@ tpValidate[filename_, OptionsPattern[]] :=
    pass = False];
   If[FileExistsQ[FileBaseName[filename] <> ".exa"],
    TP2 = importPacking[FileBaseName[filename] <> ".exa", "TP slice"];
-   If[N[TP1[[1]], prec] != N[TP2, prec],
+   If[N[TP1[[1]], tol] != N[TP2, tol],
     exaMatchMessage[filename <> " "];
     pass = False];
    ];
@@ -112,30 +116,30 @@ tpValidate[filename_, OptionsPattern[]] :=
 (* Checks that the Gram matrix is the Gram matrix of an ETF *)
 (* If corresponding .tp file exists, then all checks are skipped
    because tpValidate compares with the existing .tp file *)
-Options[exaValidate] = {WorkingPrecision -> MachinePrecision,
+Options[exaValidate] = {Tolerance -> MachinePrecision,
    exaForceTest -> False};
 exaValidate[filename_, OptionsPattern[]] := 
- Module[{prec, d, n, TP, GM, pass},
+ Module[{tol, d, n, TP, GM, pass},
   If[FileExistsQ[FileBaseName[filename] <> ".tp" &&
    ! OptionValue[exaForceTest]],
    tpExistsMessage[filename];
    Return[]];
-  prec = OptionValue[WorkingPrecision];
+  tol = OptionValue[Tolerance];
   {d, n} = extractDimensions[filename];
-  TP = importPacking[filename, Precision -> 2*prec];
+  TP = importPacking[filename, Precision -> 2*tol];
   GM = GMfromTP[TP];
   pass = True;
-  If[N[Abs[GM], prec] != 
-    N[SparseArray[{{i_, i_} -> 1, {_, _} -> Welch[d, n]}, {n, n}], prec],
-   coherenceMessage[filename <> " "];
+  If[N[Abs[GM], tol] != 
+    N[SparseArray[{{i_, i_} -> 1, {_, _} -> Welch[d, n]}, {n, n}], tol],
+   coherenceMessage[filename];
    pass = False];
-  If[N[GM, prec] != N[GM\[ConjugateTranspose], prec],
-   GMHermitianMessage[filename <> " "];
+  If[! HermitianMatrixQ[GM, Tolerance -> tol],
+   GMHermitianMessage[filename];
    pass = False];
-  If[N[GM . GM, prec] != N[n/d GM, prec],
-   GMProjectionMessage[filename <> " "];
+  If[N[GM . GM, tol] != N[n/d GM, tol],
+   GMProjectionMessage[filename];
    pass = False];
-  If[pass, passMessage[filename <> " "]]
+  If[pass, passMessage[filename]]
   ]
 
 failMessage[message_] := Print[Style[message, Red]]
