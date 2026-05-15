@@ -23,29 +23,29 @@ Get[FileNameJoin[NotebookDirectory[], "frameInvariants.wl"]];
    Default is MachinePrecision *)
 (* exaForceTest is used in exaValidate. Default is False *)
 validatePackings[pattern_String, opts : OptionsPattern[]] := 
- Module[{files, basenames, validators, validfiles, validator},
+ Module[{files, basenames, validators, exaArg, validfiles, validator},
   files = FileNameTake /@ FileNames[pattern, $packingsDirectory];
-  files = Select[files, 
-   StringMatchQ[#, {"etf*.gos", "etf*.tp", "etf*.exa"}] &];
+  files = Select[files, StringMatchQ[#, {"etf*.gos", "etf*.tp", "etf*.exa"}] &];
   If[files == {},
    Message[validatePackings::Pattern, pattern];
    Return[]
    ];
   basenames = DeleteDuplicates[FileBaseName /@ files];
   validators = <|"gos" -> gosValidate, "tp" -> tpValidate, 
-    "exa" -> exaValidate|>;
+   "exa" -> exaValidate|>;
+  exaArg = StringMatchQ[pattern, "*.e*"];
   Do[
    Print["=============== ", basename, " ==============="];
    validfiles = Select[files, FileBaseName[#] === basename &];
    Do[
      validator = validators@FileExtension[file];
-     validator[file, FilterRules[{opts}, Options[validator]]],
+     validator[file, FilterRules[{opts, exaForceTest -> exaArg}, 
+      Options[validator]]],
     {file, validfiles}],
    {basename, basenames}
    ]
   ]
-ResourceFunction["AddCodeCompletion"]["validatePackings"][
-  "RelativeFileName"];
+ResourceFunction["AddCodeCompletion"]["validatePackings"]["RelativeFileName"];
 validatePackings::Pattern = "No valid files found matching \"`1`\".";
 
 
