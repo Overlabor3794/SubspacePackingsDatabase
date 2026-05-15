@@ -111,19 +111,29 @@ tpValidate[filename_, OptionsPattern[]] :=
 (* .exa files *)
 (* Validates a .exa ETF given its file name *)
 (* Checks that the Gram matrix is the Gram matrix of an ETF *)
+(* If corresponding .tp file exists, then all checks are skipped
+   because tpValidate compares with the existing .tp file *)
 Options[exaValidate] = {WorkingPrecision -> MachinePrecision};
 exaValidate[filename_, OptionsPattern[]] := 
- Module[{prec, d, n, TP, GM, pass},
-  prec = OptionValue[WorkingPrecision];
-  {d, n} = extractDimensions[filename];
-  TP = N[importPacking[filename], 2*prec];
+ Module[{tpfilename, prec, d, n, TP, GM, pass},
+  tpfilename = FileBaseName[filename] <> ".tp";
+  If[FileExistsQ[tpfilename],
+   tpExistsMessage[filename];
+   Return[]];
+  TP = importPacking[filename, Precision -> 2*prec];
   GM = GMfromTP[TP];
   pass = True;
   If[N[Abs[GM], prec] != 
-    N[SparseArray[{{i_, i_} -> 1, {_, _} -> Welch[d, n]}, {n, n}], 2*prec],
-   coherenceMessage[filename];
+    N[SparseArray[{{i_, i_} -> 1, {_, _} -> Welch[d, n]}, {n, n}], prec],
+   coherenceMessage[filename <> " "];
    pass = False];
-  If[pass, passMessage[filename]]
+  If[N[GM, prec] != N[GM\[ConjugateTranspose], prec],
+   GMHermitianMessage[filename <> " "];
+   pass = False];
+  If[N[GM . GM, prec] != N[n/d GM, prec],
+   GMProjectionMessage[filename <> " "];
+   pass = False];
+  If[pass, passMessage[filename <> " "]]
   ]
 
 failMessage[message_] := Print[Style[message, Red]]
@@ -133,4 +143,5 @@ numberTPMessage[filename_] := failMessage[filename <> ": Number of distinct trip
 GMHermitianMessage[filename_] := failMessage[filename <> ": Gram matrix is not Hermitian"]
 GMProjectionMessage[filename_] := failMessage[filename <> ": Gram matrix does not satisfy G^2 = n/d G"]
 exaMatchMessage[filename_] := failMessage[filename <> ": Mismatch against corresponding .exa file"]
+tpExistsMessage[filename_] := Print[filename <> ": Skipping tests; will compare with corresponding .tp file"]
 passMessage[filename_] := Print[filename <> ": Passed all tests"]
