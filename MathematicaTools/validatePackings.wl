@@ -19,12 +19,10 @@ Get[FileNameJoin[NotebookDirectory[], "frameInvariants.wl"]];
 (* validatePackings["*.tp"]  tests .tp  files *)
 (* validatePackings["*.exa"] tests .exa files *)
 validatePackings[pattern_String, opts:OptionsPattern[]] := 
- Module[{validators, files, validfiles, basenames},
+ Module[{files, basenames, validators, validfiles, validator},
   files = FileNameTake /@ FileNames[pattern, $packingsDirectory];
-  validfiles = 
-   FileNameTake /@ 
-    FileNames[{"etf*.gos", "etf*.tp", "etf*.exa"}, $packingsDirectory];
-  files = Intersection[files, validfiles];
+  files = Select[files, 
+   StringMatchQ[#, {"etf*.gos", "etf*.tp", "etf*.exa"}] &];
   If[files == {},
    Message[validatePackings::Pattern, pattern];
    Return[]
@@ -36,7 +34,8 @@ validatePackings[pattern_String, opts:OptionsPattern[]] :=
    Print["=============== ", basename, " ==============="];
    validfiles = Select[files, FileBaseName[#] === basename &];
    Do[
-     validators[FileExtension@file][file, opts],
+     validator = validators@FileExtension[file];
+     validator[file, FilterRules[{opts}, Options[validator]]],
     {file, validfiles}],
    {basename, basenames}
    ]
