@@ -19,8 +19,7 @@ Get[FileNameJoin[NotebookDirectory[], "frameInvariants.wl"]];
 (* validatePackings["*.tp"]  tests .tp  files *)
 (* validatePackings["*.exa"] tests .exa files *)
 (* Available options are Tolerance and exaForceTest *)
-(* Tolerance is used in tpValidate and exaValidate.
-   Default is MachinePrecision *)
+(* Tolerance is used in tpValidate and exaValidate. Default is MachinePrecision *)
 (* exaForceTest is used in exaValidate. Default is False *)
 validatePackings[pattern_String, opts : OptionsPattern[]] := 
  Module[{files, basenames, validators, exaArg, validfiles, validator},
@@ -31,8 +30,7 @@ validatePackings[pattern_String, opts : OptionsPattern[]] :=
    Return[]
    ];
   basenames = DeleteDuplicates[FileBaseName /@ files];
-  validators = <|"gos" -> gosValidate, "tp" -> tpValidate, 
-   "exa" -> exaValidate|>;
+  validators = <|"gos" -> gosValidate, "tp" -> tpValidate, "exa" -> exaValidate|>;
   exaArg = StringMatchQ[pattern, "*.e*"];
   Do[
    Print["=============== ", basename, " ==============="];
@@ -49,15 +47,14 @@ ResourceFunction["AddCodeCompletion"]["validatePackings"]["RelativeFileName"];
 validatePackings::Pattern = "No valid files found matching \"`1`\".";
 
 
-(* The functions below are internal functions and not meant
-   to be used by the end user. Use validatePackings with an
-   appropriate pattern. *)
+(* The functions below are internal functions and not meant to be used by the end
+   user. Use validatePackings with an appropriate pattern. *)
 
 (* .gos files *)
 (* Validates a .gos ETF given its file name *)
-(* Checks that the coherence is equal to the Welch bound,
-   that the frame is unit-norm, that the number of distinct
-   triple products is equal to the number in the file name *)
+(* Checks that the coherence is equal to the Welch bound, that the frame is
+   unit-norm, that the number of distinct triple products is equal to the number
+   in the file name *)
 gosValidate[filename_, OptionsPattern[]] := Module[{d, n, Phi, pass},
   {d, n} = extractDimensions[filename];
   Phi = importPacking[filename];
@@ -76,10 +73,9 @@ gosValidate[filename_, OptionsPattern[]] := Module[{d, n, Phi, pass},
 
 (* .tp files *)
 (* Validates a .tp ETF given its file name *)
-(* Checks that the Gram matrix is the Gram matrix of an ETF,
-   that the number of distinct triple products is equal to the
-   number in the file name, and that the contents match the
-   contents of the corresponding .exa file *)
+(* Checks that the Gram matrix is the Gram matrix of an ETF, that the number of
+   distinct triple products is equal to the number in the file name, and that the
+   contents match the contents of the corresponding .exa file *)
 Options[tpValidate] = {Tolerance -> MachinePrecision};
 tpValidate[filename_, OptionsPattern[]] := 
  Module[{tol, d, n, TPPM, TP1, TP2, GM, pass},
@@ -114,14 +110,11 @@ tpValidate[filename_, OptionsPattern[]] :=
 (* .exa files *)
 (* Validates a .exa ETF given its file name *)
 (* Checks that the Gram matrix is the Gram matrix of an ETF *)
-(* If corresponding .tp file exists, then all checks are skipped
-   because tpValidate compares with the existing .tp file *)
-Options[exaValidate] = {Tolerance -> MachinePrecision,
-   exaForceTest -> False};
-exaValidate[filename_, OptionsPattern[]] := 
- Module[{tol, d, n, TP, GM, pass},
-  If[FileExistsQ[FileBaseName[filename] <> ".tp" &&
-   ! OptionValue[exaForceTest]],
+(* If corresponding .tp file exists, then all checks are skipped because tpValidate
+   compares with the existing .tp file *)
+Options[exaValidate] = {Tolerance -> MachinePrecision, exaForceTest -> False};
+exaValidate[filename_, OptionsPattern[]] := Module[{tol, d, n, TP, GM, pass},
+  If[FileExistsQ[FileBaseName[filename] <> ".tp" && ! OptionValue[exaForceTest]],
    tpExistsMessage[filename];
    Return[]];
   tol = OptionValue[Tolerance];

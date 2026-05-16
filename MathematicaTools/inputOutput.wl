@@ -3,13 +3,11 @@
 Get[FileNameJoin[NotebookDirectory[],"init.wl"]];
 
 (* Extract packing dimensions (d,n) from file name *)
-extractDimensions[filename_String] := 
- ToExpression[StringCases[filename,
+extractDimensions[filename_String] := ToExpression[StringCases[filename,
    RegularExpression["(\\d+)x(\\d+)"] -> {"$1", "$2"}][[1]]]
 
 (* Extract the number of triple products from file name *)
-extractNumberTP[filename_String] := 
- ToExpression[StringCases[filename,
+extractNumberTP[filename_String] := ToExpression[StringCases[filename,
    RegularExpression["(\\d+)x(\\d+)_(\\d+)"] -> {"$3"}][[1, 1]]]
 
 (* Function to import .gos, .tp, and .exa files *)
@@ -17,41 +15,37 @@ extractNumberTP[filename_String] :=
 (* For .tp files, the available formats are "TP", which gives the full TP tensor,
    and "Poisiton map", which gives the position map for the TP tensor *)
 (* For .exa files, the available formats are "TP", which gives the full TP tensor,
-   "Position map", which gives the position map for the TP slice, and
-   "TP slice", which returns the TP slice *)
+   "Position map", which gives the position map for the TP slice, and "TP slice",
+   which returns the TP slice *)
 (* The available option is Precision. The default is MachinePrecision for .gos 
    files, and Infinity for .tp and .exa files *)
-importPacking[filename_String, fmt_String : "TP", 
-  d_Integer : Automatic, n_Integer : Automatic, 
-  opts : OptionsPattern[]] := Module[{ext, lcfmt},
-  If[! FileExistsQ[filename],
-   Message[importPacking::nffil, filename];
-   Return[$Failed]];
-  ext = FileExtension[filename];
-  lcfmt = ToLowerCase[fmt];
-  Which[
-   ext == "gos" || ext == "txt", gosImport[filename, d, n opts],
-   ext == "tp", tpImport[filename, lcfmt, opts],
-   ext == "exa", exaImport[filename, lcfmt, opts],
-   True, Message[importPacking::FileName, filename]
+importPacking[filename_String, fmt_String : "TP", d_Integer : Automatic,
+  n_Integer : Automatic, opts : OptionsPattern[]] := Module[{ext, lcfmt},
+   If[! FileExistsQ[filename],
+    Message[importPacking::nffil, filename];
+    Return[$Failed]];
+   ext = FileExtension[filename];
+   lcfmt = ToLowerCase[fmt];
+   Which[
+    ext == "gos" || ext == "txt", gosImport[filename, d, n opts],
+    ext == "tp", tpImport[filename, lcfmt, opts],
+    ext == "exa", exaImport[filename, lcfmt, opts],
+    True, Message[importPacking::FileName, filename]
+    ]
    ]
-  ]
 ResourceFunction["AddCodeCompletion"]["importPacking"][
   "RelativeFileName", {"TP", "Position map", "TP slice"}];
-importPacking::nffil = "File `1` not found during Import";
+importPacking::nffil = "File `1` not found during import";
 importPacking::FileName = 
   "`1` is an invalid file name; *.gos, *.tp, or *.exa expected";
-importPacking::tpFormat = 
-  "\"`1`\" is an invalid format. Valid formats for \
+importPacking::tpFormat = "\"`1`\" is an invalid format. Valid formats for \
 *.tp are \"TP\" and \"Position map\"";
-importPacking::exaFormat = 
-  "`1` is an invalid format. Valid formats for *.exa are  \"TP\",  \
-\"TP slice\",  and  \"Position map\"";
+importPacking::exaFormat = "`1` is an invalid format. Valid formats for *.exa are\
+  \"TP\",  \"TP slice\",  and  \"Position map\"";
 
 (* Internal function to import .gos files *)
 Options[gosImport] = {Precision -> MachinePrecision};
-gosImport[filename_, d_, n_, OptionsPattern[]] :=
- Module[{dd, nn, plist},
+gosImport[filename_, d_, n_, OptionsPattern[]] := Module[{dd, nn, plist},
   plist =
    SetPrecision[Import[filename, "List"], OptionValue[Precision]];
   If[d === Automatic || n === Automatic,
@@ -104,14 +98,13 @@ exaImport[filename_, fmt_, OptionsPattern[]] := Module[{prec, TPSPM},
 
 (* Function to export Packings *)
 (* Works with .gos, .tp, and .exa file types *)
-(* First argument can be an a frame, a triple product tensor, a triple
-   product slice, a triple product position map, or a triple product
-   slice position map *)
-(* The function uses the structure of the first argument to determine
-   how it should be exported *)
-(* If the global flag $exportPackingChecks is set to True (default),
-   then the function performs checks between the structure of the array
-   and the file name and warns with a prompt if a mismatch is detected *)
+(* First argument can be an a frame, a triple product tensor, a triple product
+   slice, a triple product position map, or a triple product slice position map *)
+(* The function uses the structure of the first argument to determine how it
+   should be exported *)
+(* If the global flag $exportPackingChecks is set to True (default), then the
+   function performs checks between the structure of the array and the file name
+   and warns with a prompt if a mismatch is detected *)
 (* The available option is Precision and is only relevant to .gos files *)
 exportPacking[array_, filename_, opts : OptionsPattern[]] := 
  Module[{cont, dims, dim},
@@ -131,11 +124,9 @@ to replace it?", {"Yes" -> True, "No" -> False}];
    True, Message[exportPacking::structure]
    ]
   ]
-ResourceFunction["AddCodeCompletion"]["exportPacking"][None, 
-  "RelativeFileName"];
-exportPacking::structure = 
-  "The structure of the first argument is inconsistent with the \
-supported file types";
+ResourceFunction["AddCodeCompletion"]["exportPacking"][None, "RelativeFileName"];
+exportPacking::structure = "The structure of the first argument is inconsistent \
+with the supported file types";
 
 dimDialong[filename_] := ChoiceDialog["Incorrect dimensions detected\
  in " <> FileNameTake[filename] <> ".\nDo you want to continue\
@@ -206,8 +197,8 @@ pmExport[PM_, filename_] := Module[{dim, ext, extcheck, d, n, \[Alpha]},
   If[$exportPackingChecks,
    dim = Length@PM[[1, 1, 1]];
    ext = FileExtension[filename];
-   extcheck = (ext != "tp" && ext != "exa") || (ext == "tp" && 
-       dim != 3) || (ext == "exa" && dim != 2);
+   extcheck = (ext != "tp" && ext != "exa") || (ext == "tp" && dim != 3) ||
+       (ext == "exa" && dim != 2);
    If[extcheck,
     If[! extDialong[filename], Return[$Failed]];
     ];
