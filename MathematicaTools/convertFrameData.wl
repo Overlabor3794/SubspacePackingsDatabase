@@ -31,6 +31,11 @@ TPfromGM[G_] := Module[{n = Length[G]},
   Table[G[[i, j]] G[[j, k]] G[[k, i]], {i, 1, n}, {j, 1, n}, {k, 1, n}]
   ]
 
+(* Triple product slice from Gram matrix *)
+TPslicefromGM[G_, i_ : 1] := Module[{n = Length[G]},
+  Table[G[[i, j]] G[[j, k]] G[[k, i]], {j, 1, n}, {k, 1, n}]
+  ]
+
 (* Triple product tensor from vector list *)
 TPfromSO[Phi_] := TPfromGM[GMfromSO[Phi]]
 
