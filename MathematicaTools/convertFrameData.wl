@@ -81,6 +81,10 @@ SOfromGoS[gos_, {d_, n_}] :=
 (* Convert between triple product tensor and one slice of the triple
    product tensor *)
 TPslicefromTP[TP_, i_ : 1] := TP[[i]]
-TPfromTPslice[TPS_, i_ : 1] := Table[TPS[[i, i]]*TPS[[j, k]]*TPS[[k, l]]*TPS[[l, j]]/
-  (TPS[[i, j]]*TPS[[i, k]]*TPS[[i, l]]),
-  {j, 1, Length[TPS]}, {k, 1, Length[TPS]}, {l, 1, Length[TPS]}]
+TPfromTPslice[TPS_, i_ : 1] := Module[{T1, T2, T3, den},
+  T1 = ConstantArray[TPS, Length[TPS]];
+  T2 = Transpose[T1, {3, 1, 2}];
+  T3 = Transpose[T1, {2, 3, 1}];
+  den = 1/Outer[Times, #, #, #] &@TPS[[i]];
+  TPS[[i, i]]*T1*T2*T3*den
+  ]
