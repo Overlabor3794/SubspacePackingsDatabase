@@ -41,19 +41,28 @@ exactifyTuple[\[Alpha]_, OptionsPattern[]] :=
   Table[roots[[positionSmallest[Abs /@ (\[Alpha][[j]] - roots)]]], {j, 1, deg}]
   ]
 
-(* Converts an array to a list of distinct elements -> array positions *)
-Options[arrayPositionMap] = {Tolerance -> 10^(-6)};
-arrayPositionMap[l_, OptionsPattern[]] := Module[{elts, positions, level, tol},
-  tol = OptionValue[Tolerance];
-  elts = DeleteDuplicates[Flatten[l], Abs[#1 - #2] < tol &];
-  level = Length[Dimensions[l]];
-  positions = Table[Position[l, _?(Abs[# - elts[[j]]] < tol &), level],
-      {j, 1, Length[elts]}];
-  Thread[positions -> elts]
+(* Converts an array to a list of array positions -> distinct elements *)
+Options[arrayPositionMap] = {WorkingPrecision -> Automatic};
+arrayPositionMap[array_, OptionsPattern[]] := Module[{prec, aprec},
+  prec = OptionValue[WorkingPrecision];
+  aprec = Precision[array];
+  If[prec === Automatic,
+   prec = If[aprec >= MachinePrecision + 5, MachinePrecision, aprec - 5]
+   ];
+  If[aprec === MachinePrecision,
+   Reap[MapIndexed[Sow[{#1, #2}, nChop[SetPrecision[#1, $MachinePrecision], prec]] &,
+      array, {ArrayDepth[array]}], _, #2[[All, 2]] -> #2[[1, 1]] &][[2]]
+   ,
+   Reap[MapIndexed[Sow[{#1, #2}, nChop[#1, prec]] &, array, {ArrayDepth[array]}],
+         _, #2[[All, 2]] -> #2[[1, 1]] &][[2]]
+   ]
   ]
 
+nChop[x_, prec_] := N[Chop[N[x, prec + 4], 10^(-prec)], prec]
+SetAttributes[nChop, Listable];
+
 (* Covert an array position map to a standard array *)
-arrayFromPositionMap[PM_] := Normal[SparseArray[Flatten[Thread /@ PM, 1]]];
+arrayFromPositionMap[PM_] := Normal@SparseArray@Flatten[Thread /@ PM, 1];
 
 (* Exactify a position map of triple products, taking advantage of possible
    Galois conjugates *)
@@ -61,34 +70,32 @@ Options[exactifyTPPM] = {RationalCoefficients -> False,
    SimplificationMethod -> RootReduce, NumericalRefinement -> False, 
    RefinementFactor -> 10};
 exactifyTPPM[TPPM_, opts : OptionsPattern[]] := Module[{elts, positions, exactelts},
-  elts = #[[-1]] & /@ TPPM;
-  positions = #[[1]] & /@ TPPM;
+  elts = TPPM[[All, 2]];
+  positions = TPPM[[All, 1]];
   exactelts = exactifyTuple[elts, opts];
   Thread[positions -> exactelts]
   ]
 
 (* Exactify a triple product tensor, taking advantage of possible Galois conjugates *)
-Options[exactifyTP] = {Tolerance -> 10^(-6), RationalCoefficients -> False,
-   SimplificationMethod -> RootReduce, NumericalRefinement -> False,
-   RefinementFactor -> 10};
+Options[exactifyTP] = {WorkingPrecision -> MachinePrecision,
+   RationalCoefficients -> False, SimplificationMethod -> RootReduce,
+   NumericalRefinement -> False, RefinementFactor -> 10};
 exactifyTP[T_, opts : OptionsPattern[]] := arrayFromPositionMap[
   exactifyTPPM[
-   arrayPositionMap[T, Tolerance -> OptionValue[Tolerance]],
+   arrayPositionMap[T, FilterRules[{opts}, Options[arrayPositionMap]]],
    FilterRules[{opts}, Options[exactifyTPPM]]
    ]
   ]
 
 (* Exactify a position map of triple products naively using RootApproximant *)
 exactifyTPPMalt[TPPM_] := Module[{elts, positions, exactelts},
-  elts = #[[-1]] & /@ TPPM;
-  positions = #[[1]] & /@ TPPM;
+  elts = TPPM[[All, 2]];
+  positions = TPPM[[All, 1]];
   exactelts = RootApproximant /@ elts;
   Thread[positions -> exactelts]
   ]
 
 (* Exactify a triple product tensor naively using RootApproximant *)
-Options[exactifyTPalt] = {Tolerance -> 10^(-6)};
-exactifyTPalt[T_, OptionsPattern[]] := 
- arrayFromPositionMap[
-  exactifyTPPMalt[
-   arrayPositionMap[T, Tolerance -> OptionValue[Tolerance]]]]
+Options[exactifyTPalt] = {WorkingPrecision -> MachinePrecision};
+exactifyTPalt[T_, opts : OptionsPattern[]] := 
+ arrayFromPositionMap@exactifyTPPMalt@arrayPositionMap[T, opts]
