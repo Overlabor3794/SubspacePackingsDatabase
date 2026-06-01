@@ -65,7 +65,7 @@ gosValidate[filename_, OptionsPattern[]] := Module[{d, n, Phi, pass},
   If[normalizeSO[Phi] != Phi, 
    unitNormMessage[filename];
    pass = False];
-  If[extractNumberTP[filename] != numberTPfromSO[Phi],
+  If[extractNumberTP[filename] != numberTP[Phi],
    numberTPMessage[filename];
    pass = False];
   If[pass, passMessage[filename]]

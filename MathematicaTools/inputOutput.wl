@@ -146,7 +146,7 @@ gosExport[Phi_, filename_, OptionsPattern[]] := Module[{prec},
    If[Dimensions[Phi] != extractDimensions[filename],
     If[! dimDialong[filename], Return[$Failed]];
     ];
-   If[numberTPfromSO[Phi] != extractNumberTP[filename],
+   If[numberTP[Phi] != extractNumberTP[filename],
     If[! numberTPDialong[filename], Return[$Failed]];
     ];
    If[FileExtension[filename] != "gos",
