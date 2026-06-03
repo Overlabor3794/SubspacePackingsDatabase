@@ -76,7 +76,7 @@ GoSfromSO[Phi_] := Join[Re[#], Im[#]] &@ Flatten[Phi\[Transpose]]
 
 (* Synthesis operator from a Games of Sloanes representation *)
 SOfromGoS[gos_, {d_, n_}] := 
- Table[gos[[d (i - 1) + j]] + gos[[d n + d (i - 1) + j]] I, {j, 1, d}, {i, 1, n}]
+ Transpose@ArrayReshape[gos[[;; d n]] + I gos[[d n + 1 ;;]], {n, d}]
 
 (* Convert between triple product tensor and one slice of the triple
    product tensor *)
