@@ -72,7 +72,7 @@ FrameVisualize[M_] :=
  MatrixPlot[Hue[(Arg[#] + Pi)/(2 Pi), Abs[#]] & /@ # & /@ M, Frame -> False]
 
 (* Game of Sloanes representation of a synthesis operator *)
-GoSfromSO[Phi_] := Join[Flatten[Re[Phi\[Transpose]]], Flatten[Im[Phi\[Transpose]]]]
+GoSfromSO[Phi_] := Join[Re[#], Im[#]] &@ Flatten[Phi\[Transpose]]
 
 (* Synthesis operator from a Games of Sloanes representation *)
 SOfromGoS[gos_, {d_, n_}] := 
