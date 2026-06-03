@@ -1,4 +1,4 @@
-LABEL = {3x6_8A1}
+LABEL = {etf_3x6_8A1}
 TAGS = {}
 COMPONENT_DIMENSION = {1}
 NUMBER_TPS = {8}
