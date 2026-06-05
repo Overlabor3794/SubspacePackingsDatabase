@@ -6,8 +6,8 @@
 (* At threshold_ = n^3, moment equivalence is the same as equivalence of the set of triple products as multisets *)
 (* This is strictly weaker than projective permutation unitary equivalence *)
 dirtyFrameEquiv[Phi1_,Phi2_,threshold_:10,tolerance_:10^(-6)]:=Module[{moments1,moments2},
-moments1=Table[momentfromSO[Phi1,m],{m,1,threshold}];
-moments2=Table[momentfromSO[Phi2,m],{m,1,threshold}];
+moments1=Table[moment[Phi1,m],{m,1,threshold}];
+moments2=Table[moment[Phi2,m],{m,1,threshold}];
 Norm[moments1-moments2]<tolerance
 ]
 
