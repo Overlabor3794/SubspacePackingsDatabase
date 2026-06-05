@@ -45,22 +45,16 @@ arrayType[array_List] := Module[{dims, dim},
 (* The available option is WorkingPrecision and is used to determine the number
    of signifcant digits used for comparing triple products *)
 Options[distinctTP] = {WorkingPrecision -> Automatic};
-distinctTP[array_, OptionsPattern[]] := Module[{dim, dims, TP, prec, aprec},
-  dims = Dimensions[array];
-  dim = Length[dims];
+distinctTP[array_, OptionsPattern[]] := Module[{type, TP, prec, aprec},
+  type = arrayType[array];
   Which[
-   dim == 1,
-   If[Length[array[[1, 1, 1]]] == 3, Return@array[[All, 2]]];
-   If[Length[array[[1, 1, 1]]] == 2,
-    TP = TPfromTPslice@arrayFromPositionMap[array]],
-   dim == 2,
-   If[dims[[1]] < dims[[2]], TP = TPfromSO[array]];
-   If[dims[[1]] == dims[[2]],
-    If[DeleteDuplicates[N@Diagonal[array], Abs[#1 - #2] < 10^(-10) &] == {1},
-     TP = TPfromGM[array],
-     TP = TPfromTPslice[array]]
-    ],
-   dim == 3 && dims[[1]] == dims[[2]] == dims[[3]], TP = array;
+   type === "TPPM", Return@array[[All, 2]],
+   type === "TPSPM", TP = TPfromTPslice@arrayFromPositionMap[array],
+   type === "SO", TP = TPfromSO[array],
+   type === "GM", TP = TPfromGM[array],
+   type === "TPS", TP = TPfromTPslice[array],
+   type === "TP", TP = array,
+   True, Return[$Failed]
    ];
   prec = OptionValue[WorkingPrecision];
   aprec = Precision[array];
