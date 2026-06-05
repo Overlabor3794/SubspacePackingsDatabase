@@ -4,6 +4,40 @@
 (* Functions to compute invariants of frames *)
 
 
+(* Takes in an array containing frame data and returns its type *)
+(* The values returned are
+   - "SO"    : Sythesis operator
+   - "GM"    : Gram matrix
+   - "TP"    : Triple product tensor
+   - "TPS"   : Triple product slice
+   - "TPPM"  : Triple product tensor position map
+   - "TPSPM" : Triple product slice position map
+   - $Failed : If array is none of the above
+  *)
+(* If array is a Gram matrix, then it must be the Gram matrix of a normalized
+   frame; otherwise the function will return "TPS" *)
+arrayType[array_List] := Module[{dims, dim},
+  If[Length[array] == 0, Return[$Failed]];
+  dims = Dimensions[array];
+  dim = Length[dims];
+  Which[
+   dim == 1,
+   If[! DeleteDuplicates[Head /@ array] === {Rule}, Return[$Failed]];
+   If[Length[array[[1, 1, 1]]] == 3, Return["TPPM"]];
+   If[Length[array[[1, 1, 1]]] == 2, Return["TPSPM"]],
+   dim == 2,
+   If[! MatrixQ[array], Return[$Failed]];
+   If[dims[[1]] < dims[[2]], Return["SO"]];
+   If[dims[[1]] == dims[[2]],
+    If[DeleteDuplicates[N@Diagonal[array], Abs[#1 - #2] < 10^(-10) &] == {1},
+     Return["GM"],
+     Return["TPS"]]
+    ],
+   dim == 3 && dims[[1]] == dims[[2]] == dims[[3]], Return["TP"]
+   ];
+   Return[$Failed]
+  ]
+
 (* List of distict triple products, including degenerate ones *)
 (* First argument can be an a frame, a Gram matrix, a triple product tensor,
    a triple product slice, a triple product position map, or a triple product
