@@ -72,16 +72,50 @@ distinctTP[array_, OptionsPattern[]] := Module[{type, TP, prec, aprec},
 (* Number of distict triple products, including degenerate ones *)
 numberTP[array_, opts : OptionsPattern[]] := Length@distinctTP[array, opts]
 
+Options[momentCore] = {Method -> Automatic, ND -> False};
+momentCore[array_, m_, OptionsPattern[]] := Module[{type, Tm, CS},
+  type = arrayType[array];
+  Which[
+   type === "TPPM",
+   Tm = array;
+   Tm[[All, 2]] = Tm[[All, 2]]^m;
+   Tm = arrayFromPositionMap[Tm],
+   type === "TPSPM",
+   Tm = array;
+   Tm[[All, 2]] = Tm[[All, 2]]^m;
+   Tm = TPfromTPslice@arrayFromPositionMap[Tm],
+   type === "SO", Tm = TPfromGM[GMfromSO[array]^m],
+   type === "GM", Tm = TPfromGM[array^m],
+   type === "TPS", Tm = TPfromTPslice[array^m],
+   type === "TP", Tm = array^m,
+   True, Return[$Failed]
+   ];
+  CS = OptionValue[Method];
+  If[CS === Automatic,
+   If[Precision[array] === MachinePrecision,
+    CS = "CompensatedSummation",
+    CS = Automatic
+    ]
+   ];
+  If[OptionValue[ND],
+   Do[Tm[[i, i, All]] = Tm[[i, All, i]] = Tm[[All, i, i]] = 0, {i, Length[Tm]}]
+   ];
+  Total[Tm, 3, Method -> CS]
+  ]
+
 (* Moments [sum of powers of triple products] *)
-momentfromSO[Phi_, m_] := Plus @@ (Flatten[TPfromSO[Phi]]^m);
+(* Passing the option Method -> "CompensatedSummation" uses "CompensatedSummation"
+   method with Total. "CompensatedSummation" is always used if array has precision
+   equal to MachinePrecision *)
+moment[array_, m_, opts : OptionsPattern[]] := 
+ momentCore[array, m, opts, ND -> False]
 
 (* Nondiagonal moments [sum of powers of totally nondiagonal triple products] *)
-momentndfromSO[Phi_, m_] := Module[{T, n},
-  T = TPfromSO[Phi];
-  n = Length[T];
-  Sum[If[(i - j) (j - k) (k - i) == 0, 0, T[[i, j, k]]^m],
-   {i, 1, n}, {j, 1, n}, {k, 1, n}]
-  ]
+(* Passing the option Method -> "CompensatedSummation" uses "CompensatedSummation"
+   method with Total. "CompensatedSummation" is always used if array has precision
+   equal to MachinePrecision *)
+momentnd[array_, m_, opts : OptionsPattern[]] := 
+ momentCore[array, m, opts, ND -> True]
 
 (* Compute a general m-product with index set Indices_ *)
 mproductfromGM[G_, Indices_] := Module[{m, wrapIndices},
