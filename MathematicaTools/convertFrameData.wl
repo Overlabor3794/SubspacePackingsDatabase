@@ -4,9 +4,6 @@
 (* Functions to convert between vector list, Gram matrix, and triple products *)
 
 
-Get[FileNameJoin[NotebookDirectory[], "init.wl"]];
-
-
 (* TYPES *)
 (* SO = sythesis operator = "frame" = "short, fat matrix"
    = matrix whose columns are frame vectors *)

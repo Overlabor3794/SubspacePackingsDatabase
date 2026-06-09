@@ -1,7 +1,5 @@
 (* ::Package:: *)
 
-Get[FileNameJoin[NotebookDirectory[],"init.wl"]];
-
 (* Extract packing dimensions (d,n) from file name *)
 extractDimensions[filename_String] := ToExpression[StringCases[filename,
    RegularExpression["(\\d+)x(\\d+)"] -> {"$1", "$2"}][[1]]]

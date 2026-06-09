@@ -6,9 +6,6 @@
 (* Includes exactification of triple products *)
 
 
-Get[FileNameJoin[NotebookDirectory[], "init.wl"]];
-
-
 (* Position of the minimum element of a list of distinct real numbers *)
 positionSmallest[l_] := FirstPosition[l, Min[l]][[1]]
 

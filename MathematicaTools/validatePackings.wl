@@ -4,14 +4,6 @@
 (* Currently valid for ETFs only *)
 
 
-Get[FileNameJoin[NotebookDirectory[], "init.wl"]];
-Get[FileNameJoin[NotebookDirectory[], "convertFrameData.wl"]];
-Get[FileNameJoin[NotebookDirectory[], "exactification.wl"]];
-Get[FileNameJoin[NotebookDirectory[], "minimizationSetup.wl"]];
-Get[FileNameJoin[NotebookDirectory[], "inputOutput.wl"]];
-Get[FileNameJoin[NotebookDirectory[], "frameInvariants.wl"]];
-
-
 (* Validates all ETF files with file name matching pattern and
    ending with .gos, .tp, or .exa *)
 (* validatePackings["*"]     tests  all files *)
