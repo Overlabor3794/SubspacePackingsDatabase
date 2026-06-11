@@ -217,3 +217,32 @@ pmExport[PM_, filename_] := Module[{dim, ext, extcheck, d, n, \[Alpha]},
    ];
   Export[filename, PM, "List"]
   ]
+
+(* Internal function to export lookup tables to .tp or .exa files *)
+lutExport[LUT_, filename_] := Module[{TPs, array, dim, ext, d, n, \[Alpha]},
+  {TPs, array} = LUT;
+  If[$exportPackingChecks,
+   dim = ArrayDepth[array];
+   ext = FileExtension[filename];
+   If[(ext != "tp" && ext != "exa") || (ext == "tp" && dim != 3) ||
+     (ext == "exa" && dim != 2),
+    If[! extDialong[filename], Return[$Failed]];
+    ];
+   n = Dimensions[array][[1]];
+   Which[
+    dim == 2,
+    \[Alpha] = TPs[[array[[2, 2]] + 1]],
+    dim == 3,
+    \[Alpha] = TPs[[array[[1, 2, 2]] + 1]];
+    If[Length[TPs] != extractNumberTP[filename],
+     If[! numberTPDialong[filename], Return[$Failed]];
+     ]
+    ];
+   d = n/((n - 1) \[Alpha] + 1);
+   If[{d, n} != extractDimensions[filename],
+    If[! dimDialong[filename], Return[$Failed]];
+    ];
+   ];
+  array = ExportString[array, "JSON", Compact -> True];
+  Export[filename, {TPs, array}, "List"]
+  ]
