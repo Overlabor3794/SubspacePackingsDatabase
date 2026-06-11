@@ -44,11 +44,12 @@ arrayType[array_List] := Module[{dims, dim},
    slice position map *)
 (* The available option is WorkingPrecision and is used to determine the number
    of signifcant digits used for comparing triple products *)
-Options[distinctTP] = {WorkingPrecision -> Automatic};
-distinctTP[array_, OptionsPattern[]] := Module[{type, TP, prec, aprec},
+Options[distinctTP] = {WorkingPrecision -> Automatic, PackArray -> True};
+distinctTP[array_, OptionsPattern[]] := 
+ Module[{type, TP, nTP, wprec, dims, positions, base},
   type = arrayType[array];
+  If[type === "TPPM", Return@array[[All, 2]]];
   Which[
-   type === "TPPM", Return@array[[All, 2]],
    type === "TPSPM", TP = TPfromTPslice@arrayFromPositionMap[array],
    type === "SO", TP = TPfromSO[array],
    type === "GM", TP = TPfromGM[array],
@@ -56,17 +57,18 @@ distinctTP[array_, OptionsPattern[]] := Module[{type, TP, prec, aprec},
    type === "TP", TP = array,
    True, Return[$Failed]
    ];
-  prec = OptionValue[WorkingPrecision];
-  aprec = Precision[array];
-  If[prec === Automatic,
-   prec = If[aprec >= MachinePrecision + 5, MachinePrecision, aprec - 5]
+  wprec = OptionValue[WorkingPrecision];
+  If[wprec === Automatic, wprec = MachinePrecision];
+  If[OptionValue[PackArray],
+   nTP = Developer`ToPackedArray[N[TP, wprec + 5], Complex],
+   nTP = N[N[TP, wprec + 5], wprec]
    ];
-  If[aprec === MachinePrecision,
-    TP = SetPrecision[Flatten[TP], $MachinePrecision + 5];
-    N,
-    TP = Flatten[TP];
-    Identity
-    ]@DeleteDuplicatesBy[TP, nChop[#, prec] &]
+  dims = Dimensions[nTP];
+  nTP = Flatten[nTP];
+  positions = First /@ Values@PositionIndex[nTP];
+  base = Reverse@FoldList[Times, 1, Reverse@dims[[2 ;;]]];
+  positions = Mod[Quotient[# - 1, base], dims] & /@ positions + 1;
+  Extract[TP, positions]
   ]
 
 (* Number of distict triple products, including degenerate ones *)
