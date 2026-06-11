@@ -74,27 +74,30 @@ distinctTP[array_, OptionsPattern[]] :=
 (* Number of distict triple products, including degenerate ones *)
 numberTP[array_, opts : OptionsPattern[]] := Length@distinctTP[array, opts]
 
-Options[momentCore] = {Method -> Automatic, ND -> False};
-momentCore[array_, m_, OptionsPattern[]] := Module[{type, Tm, CS},
+Options[momentCore] = {PrecisionGoal -> Automatic, Method -> Automatic, ND -> False};
+momentCore[array_, m_, OptionsPattern[]] := Module[{prec, wprec, type, Tm, CS},
+  prec = OptionValue[WorkingPrecision];
+  If[prec === Automatic, prec = Precision[array]];
+  wprec = prec + If[prec === MachinePrecision, 0, 5];
   type = arrayType[array];
   Which[
    type === "TPPM",
    Tm = array;
-   Tm[[All, 2]] = Tm[[All, 2]]^m;
+   Tm[[All, 2]] = N[Tm[[All, 2]], wprec]^m;
    Tm = arrayFromPositionMap[Tm],
    type === "TPSPM",
    Tm = array;
-   Tm[[All, 2]] = Tm[[All, 2]]^m;
+   Tm[[All, 2]] = N[Tm[[All, 2]], wprec]^m;
    Tm = TPfromTPslice@arrayFromPositionMap[Tm],
-   type === "SO", Tm = TPfromGM[GMfromSO[array]^m],
-   type === "GM", Tm = TPfromGM[array^m],
-   type === "TPS", Tm = TPfromTPslice[array^m],
-   type === "TP", Tm = array^m,
+   type === "SO", Tm = TPfromGM[GMfromSO[N[array, wprec]]^m],
+   type === "GM", Tm = TPfromGM[N[array, wprec]^m],
+   type === "TPS", Tm = TPfromTPslice[N[array, wprec]^m],
+   type === "TP", Tm = N[array, wprec]^m,
    True, Return[$Failed]
    ];
   CS = OptionValue[Method];
   If[CS === Automatic,
-   If[Precision[array] === MachinePrecision,
+   If[prec === MachinePrecision,
     CS = "CompensatedSummation",
     CS = Automatic
     ]
@@ -102,7 +105,7 @@ momentCore[array_, m_, OptionsPattern[]] := Module[{type, Tm, CS},
   If[OptionValue[ND],
    Do[Tm[[i, i, All]] = Tm[[i, All, i]] = Tm[[All, i, i]] = 0, {i, Length[Tm]}]
    ];
-  Total[Tm, 3, Method -> CS]
+  N[Total[Tm, 3, Method -> CS], prec]
   ]
 
 (* Moments [sum of powers of triple products] *)
