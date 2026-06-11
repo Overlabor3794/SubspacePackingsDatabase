@@ -105,21 +105,19 @@ exaImport[filename_, fmt_, OptionsPattern[]] := Module[{prec, TPSPM},
    and warns with a prompt if a mismatch is detected *)
 (* The available option is Precision and is only relevant to .gos files *)
 exportPacking[array_, filename_, opts : OptionsPattern[]] := 
- Module[{cont, dims, dim},
+ Module[{cont, type},
   If[$exportPackingChecks && FileExistsQ[filename],
    cont = ChoiceDialog[filename <> " already exists.\nDo you want \
 to replace it?", {"Yes" -> True, "No" -> False}];
    If[! cont, Return[$Failed]];
    ];
-  dims = Dimensions[array];
-  dim = Length[dims];
+  type = arrayType[array];
   Which[
-   dim == 1, pmExport[array, filename],
-   dim == 2 && dims[[1]] < dims[[2]], gosExport[array, filename, opts],
-   dim == 2 && dims[[1]] == dims[[2]], exaExport[array, filename],
-   dim == 3 && dims[[1]] == dims[[2]] == dims[[3]], 
-   tpExport[array, filename],
-   True, Message[exportPacking::structure]
+   type === "SO", gosExport[array, filename, opts],
+   type === "TP", tpExport[array, filename],
+   type === "TPS", exaExport[array, filename],
+   type === "TP LUT" || type === "TPS LUT", lutExport[array, filename],
+   True, Message[exportPacking::structure]; Return[$Failed]
    ]
   ]
 ResourceFunction["AddCodeCompletion"]["exportPacking"][None, "RelativeFileName"];
@@ -156,7 +154,7 @@ gosExport[Phi_, filename_, OptionsPattern[]] := Module[{prec},
   ]
 
 (* Internal function to export .tp files *)
-tpExport[TP_, filename_] := Module[{d, n, TPPM},
+tpExport[TP_, filename_] := Module[{d, n, distinct, array},
   If[$exportPackingChecks,
    n = Dimensions[TP][[1]];
    d = n / ((n - 1) TP[[1, 2, 2]] + 1);
@@ -167,18 +165,19 @@ tpExport[TP_, filename_] := Module[{d, n, TPPM},
     If[! extDialong[filename], Return[$Failed]];
     ];
    ];
-  TPPM = arrayPositionMap[TP];
-  If[$exportPackingChecks && Length[TPPM] != extractNumberTP[filename],
+  {distinct, array} = arraytoLUT[TP];
+  If[$exportPackingChecks && Length[distinct] != extractNumberTP[filename],
    If[! numberTPDialong[filename], Return[$Failed]];
    ];
-  Export[filename, TPPM, "List"]
+  array = ExportString[array, "JSON", Compact -> True];
+  Export[filename, {distinct, array}, "List"]
   ]
 
 (* Internal function to export .exa files *)
-exaExport[TPS_, filename_] := Module[{d, n, TPSPM},
+exaExport[TPS_, filename_] := Module[{d, n, distinct, array},
   If[$exportPackingChecks,
    n = Dimensions[TPS][[1]];
-   d = n / ((n - 1) TP[[2, 2]] + 1);
+   d = n / ((n - 1) TPS[[2, 2]] + 1);
    If[{d, n} != extractDimensions[filename],
     If[! dimDialong[filename], Return[$Failed]];
     ];
@@ -186,8 +185,9 @@ exaExport[TPS_, filename_] := Module[{d, n, TPSPM},
     If[! extDialong[filename], Return[$Failed]];
     ];
    ];
-  TPSPM = arrayPositionMap[TPS];
-  Export[filename, TPSPM, "List"]
+  {distinct, array} = arraytoLUT[TPS];
+  array = ExportString[array, "JSON", Compact -> True];
+  Export[filename, {distinct, array}, "List"]
   ]
 
 (* Internal function to export array position maps to .tp or .exa files *)
@@ -219,8 +219,8 @@ pmExport[PM_, filename_] := Module[{dim, ext, extcheck, d, n, \[Alpha]},
   ]
 
 (* Internal function to export lookup tables to .tp or .exa files *)
-lutExport[LUT_, filename_] := Module[{TPs, array, dim, ext, d, n, \[Alpha]},
-  {TPs, array} = LUT;
+lutExport[LUT_, filename_] := Module[{distinct, array, dim, ext, d, n, \[Alpha]},
+  {distinct, array} = LUT;
   If[$exportPackingChecks,
    dim = ArrayDepth[array];
    ext = FileExtension[filename];
@@ -231,10 +231,10 @@ lutExport[LUT_, filename_] := Module[{TPs, array, dim, ext, d, n, \[Alpha]},
    n = Dimensions[array][[1]];
    Which[
     dim == 2,
-    \[Alpha] = TPs[[array[[2, 2]] + 1]],
+    \[Alpha] = distinct[[array[[2, 2]] + 1]],
     dim == 3,
-    \[Alpha] = TPs[[array[[1, 2, 2]] + 1]];
-    If[Length[TPs] != extractNumberTP[filename],
+    \[Alpha] = distinct[[array[[1, 2, 2]] + 1]];
+    If[Length[distinct] != extractNumberTP[filename],
      If[! numberTPDialong[filename], Return[$Failed]];
      ]
     ];
@@ -244,5 +244,5 @@ lutExport[LUT_, filename_] := Module[{TPs, array, dim, ext, d, n, \[Alpha]},
     ];
    ];
   array = ExportString[array, "JSON", Compact -> True];
-  Export[filename, {TPs, array}, "List"]
+  Export[filename, {distinct, array}, "List"]
   ]
