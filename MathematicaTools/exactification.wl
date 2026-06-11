@@ -58,6 +58,32 @@ arrayPositionMap[array_, OptionsPattern[]] := Module[{prec, aprec},
 nChop[x_, prec_] := N[Chop[N[x, prec + 4], 10^(-prec)], prec]
 SetAttributes[nChop, Listable];
 
+(* Converts an array to a lookup table *)
+Options[arraytoLUT] = {WorkingPrecision -> Automatic, PackArray -> True};
+arraytoLUT[array_, OptionsPattern[]] := 
+ Module[{wprec, narray, distinct, LUT, dims, positions, base},
+  wprec = OptionValue[WorkingPrecision];
+  If[wprec === Automatic, wprec = MachinePrecision];
+  If[OptionValue[PackArray],
+   narray = Developer`ToPackedArray[N[array, wprec + 5], Complex],
+   narray = N[N[array, wprec + 5], wprec]
+   ];
+  dims = Dimensions[narray];
+  narray = Flatten[narray];
+  distinct = PositionIndex[narray];
+  LUT = AssociationThread[Keys[distinct] -> Range[0, Length[distinct] - 1]];
+  LUT = ArrayReshape[Lookup[LUT, narray], dims];
+  positions = First /@ Values[distinct];
+  base = Reverse@FoldList[Times, 1, Reverse@dims[[2 ;;]]];
+  positions = Mod[Quotient[# - 1, base], dims] & /@ positions + 1;
+  distinct = Extract[array, positions];
+  {distinct, LUT}
+  ]
+
+(* Converts a lookup table to an array *)
+arrayfromLUT[LUT_] := 
+ LUT[[2]] /. AssociationThread[Range[0, Length[LUT[[1]]] - 1] -> LUT[[1]]]
+
 (* Covert an array position map to a standard array *)
 arrayFromPositionMap[PM_] := Normal@SparseArray@Flatten[Thread /@ PM, 1];
 
