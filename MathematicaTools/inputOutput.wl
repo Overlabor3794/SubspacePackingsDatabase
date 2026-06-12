@@ -11,41 +11,37 @@ extractNumberTP[filename_String] := ToExpression[StringCases[filename,
 (* Function to import .gos, .tp, and .exa files *)
 (* For .gos files, the fmt argument is not applicable and is ignored if passed *)
 (* For .tp files, the available formats are "TP", which gives the full TP tensor,
-   and "Poisiton map", which gives the position map for the TP tensor *)
+   and "Lookup table", which gives the lookup table for the TP tensor *)
 (* For .exa files, the available formats are "TP", which gives the full TP tensor,
-   "Position map", which gives the position map for the TP slice, and "TP slice",
+   "Lookup table", which gives the lookup table for the TP slice, and "TP slice",
    which returns the TP slice *)
-(* The available option is Precision. The default is MachinePrecision for .gos 
+(* The available option is PrecisionGoal. The default is MachinePrecision for .gos 
    files, and Infinity for .tp and .exa files *)
 importPacking[filename_String, fmt_String : "TP", d_Integer : Automatic,
-  n_Integer : Automatic, opts : OptionsPattern[]] := Module[{ext, lcfmt},
+  n_Integer : Automatic, opts : OptionsPattern[]] := Module[{ext},
    If[! FileExistsQ[filename],
     Message[importPacking::nffil, filename];
     Return[$Failed]];
    ext = FileExtension[filename];
-   lcfmt = ToLowerCase[fmt];
    Which[
     ext == "gos" || ext == "txt", gosImport[filename, d, n opts],
-    ext == "tp", tpImport[filename, lcfmt, opts],
-    ext == "exa", exaImport[filename, lcfmt, opts],
-    True, Message[importPacking::FileName, filename]
+    ext == "tp", tpImport[filename, fmt, opts],
+    ext == "exa", exaImport[filename, fmt, opts],
+    True, Message[importPacking::FileName, filename]; Return[$Failed]
     ]
    ]
 ResourceFunction["AddCodeCompletion"]["importPacking"][
-  "RelativeFileName", {"TP", "Position map", "TP slice"}];
+  "RelativeFileName", {"TP", "TP slice", "Lookup table"}];
 importPacking::nffil = "File `1` not found during import";
 importPacking::FileName = 
-  "`1` is an invalid file name; *.gos, *.tp, or *.exa expected";
-importPacking::tpFormat = "\"`1`\" is an invalid format. Valid formats for \
-*.tp are \"TP\" and \"Position map\"";
-importPacking::exaFormat = "`1` is an invalid format. Valid formats for *.exa are\
-  \"TP\",  \"TP slice\",  and  \"Position map\"";
+  "`1` is an invalid file name; *.txt, *.gos, *.tp, or *.exa expected";
+importPacking::fmt = "`1` is an invalid format. Valid formats are\
+  \"TP\",  \"TP slice\",  and  \"Lookup table\"";
 
 (* Internal function to import .gos files *)
-Options[gosImport] = {Precision -> MachinePrecision};
+Options[gosImport] = {PrecisionGoal -> MachinePrecision};
 gosImport[filename_, d_, n_, OptionsPattern[]] := Module[{dd, nn, plist},
-  plist =
-   SetPrecision[Import[filename, "List"], OptionValue[Precision]];
+  plist = SetPrecision[Import[filename, "List"], OptionValue[PrecisionGoal]];
   If[d === Automatic || n === Automatic,
    {dd, nn} = extractDimensions[filename],
    {dd, nn} = {d, n}];
@@ -53,57 +49,66 @@ gosImport[filename_, d_, n_, OptionsPattern[]] := Module[{dd, nn, plist},
   ]
 
 (* Internal function to import .tp files *)
-Options[tpImport] = {Precision -> Infinity};
-tpImport[filename_, fmt_, OptionsPattern[]] := Module[{prec, TPPM},
-  prec = OptionValue[Precision];
-  TPPM = ToExpression /@ Import[filename, "List"];
+Options[tpImport] = {PrecisionGoal -> Infinity};
+tpImport[filename_, fmt_, OptionsPattern[]] := Module[{gprec, LUT, lcfmt},
+  gprec = OptionValue[PrecisionGoal];
+  LUT = Import[filename, "List"];
+  LUT = {ToExpression@LUT[[1]], ImportString[LUT[[2]], "JSON"]};
+  lcfmt = ToLowerCase[fmt];
   Which[
-   fmt == "tp",
-   TPPM[[All, 2]] = N[TPPM[[All, 2]], prec];
-   arrayFromPositionMap[TPPM]
+   lcfmt == "tp",
+   LUT[[1]] = N[LUT[[1]], gprec];
+   arrayfromLUT[LUT]
    ,
-   fmt == "position map",
-   TPPM[[All, 2]] = N[TPPM[[All, 2]], prec];
-   TPPM
+   lcfmt == "lookup table",
+   LUT[[1]] = N[LUT[[1]], gprec];
+   LUT
+   ,
+   lcfmt == "tp slice",
+   LUT[[1]] = N[LUT[[1]], gprec];
+   TPslicefromTP@arrayfromLUT[LUT]
    ,
    True,
-   Message[importPacking::tpFormat, fmt]
+   Message[importPacking::fmt, fmt]
    ]
   ]
 
 (* Internal function to import .exa files *)
-Options[exaImport] = {Precision -> Infinity};
-exaImport[filename_, fmt_, OptionsPattern[]] := Module[{prec, TPSPM},
-  prec = OptionValue[Precision];
-  TPSPM = ToExpression /@ Import[filename, "List"];
+Options[exaImport] = {PrecisionGoal -> Infinity};
+exaImport[filename_, fmt_, OptionsPattern[]] := Module[{gprec, wprec, LUT, lcfmt},
+  gprec = OptionValue[PrecisionGoal];
+  wprec = gprec + 5;
+  LUT = Import[filename, "List"];
+  LUT = {ToExpression@LUT[[1]], ImportString[LUT[[2]], "JSON"]};
+  lcfmt = ToLowerCase[fmt];
   Which[
-   fmt == "tp",
-   TPSPM[[All, 2]] = N[TPSPM[[All, 2]], 2*prec];
-   N[TPfromTPslice@arrayFromPositionMap[TPSPM], prec]
+   lcfmt == "tp",
+   LUT[[1]] = N[LUT[[1]], wprec];
+   N[TPfromTPslice@arrayfromLUT[LUT], gprec]
    ,
-   fmt == "position map",
-   TPSPM[[All, 2]] = N[TPSPM[[All, 2]], prec];
-   TPSPM
+   lcfmt == "lookup table",
+   LUT[[1]] = N[LUT[[1]], gprec];
+   LUT
    ,
-   fmt == "tp slice",
-   TPSPM[[All, 2]] = N[TPSPM[[All, 2]], prec];
-   arrayFromPositionMap[TPSPM]
+   lcfmt == "tp slice",
+   LUT[[1]] = N[LUT[[1]], gprec];
+   arrayfromLUT[LUT]
    ,
    True,
-   Message[importPacking::exaFormat, fmt]
+   Message[importPacking::fmt, fmt]
    ]
   ]
 
 (* Function to export Packings *)
 (* Works with .gos, .tp, and .exa file types *)
 (* First argument can be an a frame, a triple product tensor, a triple product
-   slice, a triple product position map, or a triple product slice position map *)
+   slice, a triple product lookup table, or a triple product slice lookup table *)
 (* The function uses the structure of the first argument to determine how it
    should be exported *)
 (* If the global flag $exportPackingChecks is set to True (default), then the
    function performs checks between the structure of the array and the file name
    and warns with a prompt if a mismatch is detected *)
-(* The available option is Precision and is only relevant to .gos files *)
+(* The available option is PrecisionGoal and is only relevant to .gos files *)
 exportPacking[array_, filename_, opts : OptionsPattern[]] := 
  Module[{cont, type},
   If[$exportPackingChecks && FileExistsQ[filename],
@@ -136,7 +141,7 @@ in " <> FileNameTake[filename] <> ".\nDo you want to continue \
 exporting?", {"Yes" -> True, "No" -> False}];
 
 (* Internal function to export .gos files *)
-Options[gosExport] = {Precision -> MachinePrecision};
+Options[gosExport] = {PrecisionGoal -> MachinePrecision};
 gosExport[Phi_, filename_, OptionsPattern[]] := Module[{prec},
   If[$exportPackingChecks,
    If[Dimensions[Phi] != extractDimensions[filename],
@@ -149,7 +154,7 @@ gosExport[Phi_, filename_, OptionsPattern[]] := Module[{prec},
     If[! extDialong[filename], Return[$Failed]];
     ];
    ];
-  prec = OptionValue[Precision];
+  prec = OptionValue[PrecisionGoal];
   Export[filename, N[GoSfromSO[Phi], prec], "List"]
   ]
 
