@@ -198,34 +198,6 @@ exaExport[TPS_, filename_] := Module[{d, n, distinct, array},
   Export[filename, {distinct, array}, "List"]
   ]
 
-(* Internal function to export array position maps to .tp or .exa files *)
-pmExport[PM_, filename_] := Module[{dim, ext, extcheck, d, n, \[Alpha]},
-  If[$exportPackingChecks,
-   dim = Length@PM[[1, 1, 1]];
-   ext = FileExtension[filename];
-   extcheck = (ext != "tp" && ext != "exa") || (ext == "tp" && dim != 3) ||
-       (ext == "exa" && dim != 2);
-   If[extcheck,
-    If[! extDialong[filename], Return[$Failed]];
-    ];
-   n = Max@PM[[All, 1]];
-   Which[
-    dim == 2,
-    \[Alpha] = {2, 2} /. Flatten[Thread /@ PM];,
-    dim == 3,
-    \[Alpha] = {1, 2, 2} /. Flatten[Thread /@ PM];
-    If[Length[PM] != extractNumberTP[filename],
-     If[! numberTPDialong[filename], Return[$Failed]];
-     ]
-   ];
-   d = n/((n - 1) \[Alpha] + 1);
-   If[{d, n} != extractDimensions[filename],
-    If[! dimDialong[filename], Return[$Failed]];
-    ];
-   ];
-  Export[filename, PM, "List"]
-  ]
-
 (* Internal function to export lookup tables to .tp or .exa files *)
 lutExport[LUT_, filename_] := Module[{distinct, array, dim, ext, d, n, \[Alpha]},
   {distinct, array} = LUT;
