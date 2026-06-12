@@ -38,26 +38,6 @@ exactifyTuple[\[Alpha]_, OptionsPattern[]] :=
   Table[roots[[positionSmallest[Abs /@ (\[Alpha][[j]] - roots)]]], {j, 1, deg}]
   ]
 
-(* Converts an array to a list of array positions -> distinct elements *)
-Options[arrayPositionMap] = {WorkingPrecision -> Automatic};
-arrayPositionMap[array_, OptionsPattern[]] := Module[{prec, aprec},
-  prec = OptionValue[WorkingPrecision];
-  aprec = Precision[array];
-  If[prec === Automatic,
-   prec = If[aprec >= MachinePrecision + 5, MachinePrecision, aprec - 5]
-   ];
-  If[aprec === MachinePrecision,
-   Reap[MapIndexed[Sow[{#1, #2}, nChop[SetPrecision[#1, $MachinePrecision], prec]] &,
-      array, {ArrayDepth[array]}], _, #2[[All, 2]] -> #2[[1, 1]] &][[2]]
-   ,
-   Reap[MapIndexed[Sow[{#1, #2}, nChop[#1, prec]] &, array, {ArrayDepth[array]}],
-         _, #2[[All, 2]] -> #2[[1, 1]] &][[2]]
-   ]
-  ]
-
-nChop[x_, prec_] := N[Chop[N[x, prec + 4], 10^(-prec)], prec]
-SetAttributes[nChop, Listable];
-
 (* Converts an array to a lookup table *)
 Options[arraytoLUT] = {WorkingPrecision -> Automatic, PackArray -> True};
 arraytoLUT[array_, OptionsPattern[]] := 
@@ -83,9 +63,6 @@ arraytoLUT[array_, OptionsPattern[]] :=
 (* Converts a lookup table to an array *)
 arrayfromLUT[LUT_] := 
  LUT[[2]] /. AssociationThread[Range[0, Length[LUT[[1]]] - 1] -> LUT[[1]]]
-
-(* Covert an array position map to a standard array *)
-arrayFromPositionMap[PM_] := Normal@SparseArray@Flatten[Thread /@ PM, 1];
 
 (* Exactify a position map of triple products, taking advantage of possible
    Galois conjugates *)
