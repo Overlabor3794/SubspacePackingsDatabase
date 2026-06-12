@@ -50,9 +50,9 @@ Options[distinctTP] = {WorkingPrecision -> Automatic, PackArray -> True};
 distinctTP[array_, OptionsPattern[]] := 
  Module[{type, TP, nTP, wprec, dims, positions, base},
   type = arrayType[array];
-  If[type === "TPPM", Return@array[[All, 2]]];
+  If[type === "TP LUT", Return@array[[1]]];
   Which[
-   type === "TPSPM", TP = TPfromTPslice@arrayFromPositionMap[array],
+   type === "TPS LUT", TP = TPfromTPslice@arrayfromLUT[array],
    type === "SO", TP = TPfromSO[array],
    type === "GM", TP = TPfromGM[array],
    type === "TPS", TP = TPfromTPslice[array],
@@ -77,20 +77,20 @@ distinctTP[array_, OptionsPattern[]] :=
 numberTP[array_, opts : OptionsPattern[]] := Length@distinctTP[array, opts]
 
 Options[momentCore] = {PrecisionGoal -> Automatic, Method -> Automatic, ND -> False};
-momentCore[array_, m_, OptionsPattern[]] := Module[{prec, wprec, type, Tm, CS},
-  prec = OptionValue[WorkingPrecision];
-  If[prec === Automatic, prec = Precision[array]];
-  wprec = prec + If[prec === MachinePrecision, 0, 5];
+momentCore[array_, m_, OptionsPattern[]] := Module[{gprec, wprec, type, Tm, CS},
+  gprec = OptionValue[PrecisionGoal];
+  If[gprec === Automatic, gprec = Precision[array]];
+  wprec = gprec + If[gprec === MachinePrecision, 0, 5];
   type = arrayType[array];
   Which[
-   type === "TPPM",
+   type === "TP LUT",
    Tm = array;
-   Tm[[All, 2]] = N[Tm[[All, 2]], wprec]^m;
-   Tm = arrayFromPositionMap[Tm],
-   type === "TPSPM",
+   Tm[[1]] = N[Tm[[1]], wprec]^m;
+   Tm = arrayfromLUT[Tm],
+   type === "TPS LUT",
    Tm = array;
-   Tm[[All, 2]] = N[Tm[[All, 2]], wprec]^m;
-   Tm = TPfromTPslice@arrayFromPositionMap[Tm],
+   Tm[[1]] = N[Tm[[1]], wprec]^m;
+   Tm = TPfromTPslice@arrayfromLUT[Tm],
    type === "SO", Tm = TPfromGM[GMfromSO[N[array, wprec]]^m],
    type === "GM", Tm = TPfromGM[N[array, wprec]^m],
    type === "TPS", Tm = TPfromTPslice[N[array, wprec]^m],
@@ -99,7 +99,7 @@ momentCore[array_, m_, OptionsPattern[]] := Module[{prec, wprec, type, Tm, CS},
    ];
   CS = OptionValue[Method];
   If[CS === Automatic,
-   If[prec === MachinePrecision,
+   If[wprec === MachinePrecision,
     CS = "CompensatedSummation",
     CS = Automatic
     ]
@@ -107,7 +107,7 @@ momentCore[array_, m_, OptionsPattern[]] := Module[{prec, wprec, type, Tm, CS},
   If[OptionValue[ND],
    Do[Tm[[i, i, All]] = Tm[[i, All, i]] = Tm[[All, i, i]] = 0, {i, Length[Tm]}]
    ];
-  N[Total[Tm, 3, Method -> CS], prec]
+  N[Total[Tm, 3, Method -> CS], gprec]
   ]
 
 (* Moments [sum of powers of triple products] *)
