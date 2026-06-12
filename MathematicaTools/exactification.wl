@@ -89,36 +89,28 @@ arrayFromPositionMap[PM_] := Normal@SparseArray@Flatten[Thread /@ PM, 1];
 
 (* Exactify a position map of triple products, taking advantage of possible
    Galois conjugates *)
-Options[exactifyTPPM] = {RationalCoefficients -> False, 
+Options[exactifyLUT] = {RationalCoefficients -> False, 
    SimplificationMethod -> RootReduce, NumericalRefinement -> False, 
    RefinementFactor -> 10};
-exactifyTPPM[TPPM_, opts : OptionsPattern[]] := Module[{elts, positions, exactelts},
-  elts = TPPM[[All, 2]];
-  positions = TPPM[[All, 1]];
-  exactelts = exactifyTuple[elts, opts];
-  Thread[positions -> exactelts]
-  ]
+exactifyLUT[LUT_, opts : OptionsPattern[]] :=
+ {exactifyTuple[LUT[[1]], opts], LUT[[2]]}
 
 (* Exactify a triple product tensor, taking advantage of possible Galois conjugates *)
-Options[exactifyTP] = {WorkingPrecision -> MachinePrecision,
+Options[exactifyTP] = {WorkingPrecision -> Automatic,
    RationalCoefficients -> False, SimplificationMethod -> RootReduce,
    NumericalRefinement -> False, RefinementFactor -> 10};
-exactifyTP[T_, opts : OptionsPattern[]] := arrayFromPositionMap[
-  exactifyTPPM[
-   arrayPositionMap[T, FilterRules[{opts}, Options[arrayPositionMap]]],
-   FilterRules[{opts}, Options[exactifyTPPM]]
-   ]
+exactifyTP[TP_, opts : OptionsPattern[]] := Module[{fopts, tmp},
+  fopts = FilterRules[{opts}, Options[arraytoLUT]];
+  tmp = arraytoLUT[TP, fopts];
+  fopts = FilterRules[{opts}, Options[exactifyLUT]];
+  tmp = exactifyLUT[tmp, fopts];
+  arrayfromLUT[tmp]
   ]
 
 (* Exactify a position map of triple products naively using RootApproximant *)
-exactifyTPPMalt[TPPM_] := Module[{elts, positions, exactelts},
-  elts = TPPM[[All, 2]];
-  positions = TPPM[[All, 1]];
-  exactelts = RootApproximant /@ elts;
-  Thread[positions -> exactelts]
-  ]
+exactifyLUTalt[LUT_] := {RootApproximant /@ LUT[[1]], LUT[[2]]}
 
 (* Exactify a triple product tensor naively using RootApproximant *)
-Options[exactifyTPalt] = {WorkingPrecision -> MachinePrecision};
-exactifyTPalt[T_, opts : OptionsPattern[]] := 
- arrayFromPositionMap@exactifyTPPMalt@arrayPositionMap[T, opts]
+Options[exactifyTPalt] = {WorkingPrecision -> Automatic};
+exactifyTPalt[TP_, opts : OptionsPattern[]] := 
+ arrayfromLUT@exactifyLUTalt@arraytoLUT[TP, opts]
