@@ -17,14 +17,16 @@ extractNumberTP[filename_String] := ToExpression[StringCases[filename,
    which returns the TP slice *)
 (* The available option is PrecisionGoal. The default is MachinePrecision for .gos 
    files, and Infinity for .tp and .exa files *)
-importPacking[filename_String, fmt_String : "TP", d_Integer : Automatic,
+importPacking[filename_String, fmt_String : Automatic, d_Integer : Automatic,
   n_Integer : Automatic, opts : OptionsPattern[]] := Module[{ext},
    If[! FileExistsQ[filename],
     Message[importPacking::nffil, filename];
     Return[$Failed]];
    ext = FileExtension[filename];
    Which[
-    ext == "gos" || ext == "txt", gosImport[filename, d, n opts],
+    ext == "gos" || ext == "txt",
+    If[fmt =!= Automatic, Message[importPacking::ignarg, fmt]];
+    gosImport[filename, d, n opts],
     ext == "tp", tpImport[filename, fmt, opts],
     ext == "exa", exaImport[filename, fmt, opts],
     True, Message[importPacking::FileName, filename]; Return[$Failed]
@@ -35,6 +37,7 @@ ResourceFunction["AddCodeCompletion"]["importPacking"][
 importPacking::nffil = "File `1` not found during import";
 importPacking::FileName = 
   "`1` is an invalid file name; *.txt, *.gos, *.tp, or *.exa expected";
+importPacking::ignarg = "The argument `1` is ignored";
 importPacking::fmt = "`1` is an invalid format. Valid formats are\
   \"TP\",  \"TP slice\",  and  \"Lookup table\"";
 
@@ -54,7 +57,7 @@ tpImport[filename_, fmt_, OptionsPattern[]] := Module[{gprec, LUT, lcfmt},
   gprec = OptionValue[PrecisionGoal];
   LUT = Import[filename, "List"];
   LUT = {ToExpression@LUT[[1]], ImportString[LUT[[2]], "JSON"]};
-  lcfmt = ToLowerCase[fmt];
+  lcfmt = If[fmt === Automatic, "tp", ToLowerCase[fmt]];
   Which[
    lcfmt == "tp",
    LUT[[1]] = N[LUT[[1]], gprec];
@@ -80,7 +83,7 @@ exaImport[filename_, fmt_, OptionsPattern[]] := Module[{gprec, wprec, LUT, lcfmt
   wprec = gprec + 5;
   LUT = Import[filename, "List"];
   LUT = {ToExpression@LUT[[1]], ImportString[LUT[[2]], "JSON"]};
-  lcfmt = ToLowerCase[fmt];
+  lcfmt = If[fmt === Automatic, "tp slice", ToLowerCase[fmt]];
   Which[
    lcfmt == "tp",
    LUT[[1]] = N[LUT[[1]], wprec];
