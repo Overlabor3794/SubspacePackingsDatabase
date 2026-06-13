@@ -8,7 +8,7 @@
 (* The values returned are
    - "SO"      : Sythesis operator (frame)
    - "GM"      : Gram matrix
-   - "TP"      : Triple product tens
+   - "TP"      : Triple product tensor
    - "TPS"     : Triple product slice
    - "TP LUT"  : Triple product tensor lookup table
    - "TPS LUT" : Triple product slice lookup table
