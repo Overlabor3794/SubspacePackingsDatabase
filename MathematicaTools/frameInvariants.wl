@@ -46,24 +46,41 @@ arrayType[array_List] := Module[{dims, dim},
    slice position map *)
 (* The available option is WorkingPrecision and is used to determine the number
    of signifcant digits used for comparing triple products *)
-Options[distinctTP] = {WorkingPrecision -> Automatic, PackArray -> True};
+Options[distinctTP] = {WorkingPrecision -> Automatic, PackArray -> Automatic};
 distinctTP[array_, OptionsPattern[]] := 
- Module[{type, TP, nTP, wprec, dims, positions, base},
+ Module[{type, TP, nTP, aprec, wprec, pack, dims, positions, base},
   type = arrayType[array];
   If[type === "TP LUT", Return@array[[1]]];
   Which[
    type === "TPS LUT", TP = TPfromTPslice@arrayfromLUT[array],
-   type === "SO", TP = TPfromSO[array],
+   type === "SO",
+   TP = TPfromSO[array],
    type === "GM", TP = TPfromGM[array],
    type === "TPS", TP = TPfromTPslice[array],
    type === "TP", TP = array,
    True, Return[$Failed]
    ];
+  aprec = Precision[array];
   wprec = OptionValue[WorkingPrecision];
-  If[wprec === Automatic, wprec = MachinePrecision];
-  If[OptionValue[PackArray],
-   nTP = Developer`ToPackedArray[N[TP, wprec + 5], Complex],
-   nTP = N[N[TP, wprec + 5], wprec]
+  pack = OptionValue[PackArray];
+  Which[
+   wprec === pack === Automatic,
+   If[aprec >= MachinePrecision + 5,
+    wprec = MachinePrecision;
+    pack = True,
+    wprec = Max[1, aprec - 5];
+    pack = False;
+    ],
+   wprec === Automatic && pack =!= Automatic,
+   wprec = If[aprec >= MachinePrecision + 5, MachinePrecision, Max[1, aprec - 5]],
+   wprec =!= Automatic && pack === Automatic,
+   pack = If[wprec === MachinePrecision, True, False]
+   ];
+  nTP = SetPrecision[TP, wprec + 5];
+  If[pack === True,
+   nTP = Developer`ToPackedArray[nTP, Complex],
+   nTP = Chop[nTP, 10^(5 - Accuracy[array])];
+   nTP = SetPrecision[nTP, wprec];
    ];
   dims = Dimensions[nTP];
   nTP = Flatten[nTP];

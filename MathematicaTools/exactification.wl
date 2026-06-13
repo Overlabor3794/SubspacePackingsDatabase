@@ -39,14 +39,30 @@ exactifyTuple[\[Alpha]_, OptionsPattern[]] :=
   ]
 
 (* Converts an array to a lookup table *)
-Options[arraytoLUT] = {WorkingPrecision -> Automatic, PackArray -> True};
+Options[arraytoLUT] = {WorkingPrecision -> Automatic, PackArray -> Automatic};
 arraytoLUT[array_, OptionsPattern[]] := 
- Module[{wprec, narray, distinct, LUT, dims, positions, base},
+ Module[{aprec, wprec, pack ,narray, distinct, LUT, dims, positions, base},
+  aprec = Precision[array];
   wprec = OptionValue[WorkingPrecision];
-  If[wprec === Automatic, wprec = MachinePrecision];
-  If[OptionValue[PackArray],
-   narray = Developer`ToPackedArray[N[array, wprec + 5], Complex],
-   narray = N[N[array, wprec + 5], wprec]
+  pack = OptionValue[PackArray];
+  Which[
+   wprec === pack === Automatic,
+   If[aprec >= MachinePrecision + 5,
+    wprec = MachinePrecision;
+    pack = True,
+    wprec = Max[1, aprec - 5];
+    pack = False;
+    ],
+   wprec === Automatic && pack =!= Automatic,
+   wprec = If[aprec >= MachinePrecision + 5, MachinePrecision, Max[1, aprec - 5]],
+   wprec =!= Automatic && pack === Automatic,
+   pack = If[wprec === MachinePrecision, True, False]
+   ];
+  narray = SetPrecision[array, wprec + 5];
+  If[pack === True,
+   narray = Developer`ToPackedArray[narray, Complex],
+   narray = Chop[narray, 10^(5 - Accuracy[array])];
+   narray = SetPrecision[narray, wprec];
    ];
   dims = Dimensions[narray];
   narray = Flatten[narray];
