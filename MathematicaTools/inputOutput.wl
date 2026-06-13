@@ -10,11 +10,9 @@ extractNumberTP[filename_String] := ToExpression[StringCases[filename,
 
 (* Function to import .gos, .tp, and .exa files *)
 (* For .gos files, the fmt argument is not applicable and is ignored if passed *)
-(* For .tp files, the available formats are "TP", which gives the full TP tensor,
-   and "Lookup table", which gives the lookup table for the TP tensor *)
-(* For .exa files, the available formats are "TP", which gives the full TP tensor,
-   "Lookup table", which gives the lookup table for the TP slice, and "TP slice",
-   which returns the TP slice *)
+(* For .tp and .exa files, the available formats are "TP", "TP slice", and
+   "Lookup table". The default is "TP" for .tp files and "TP slice" for .exa
+   files *)
 (* The available option is PrecisionGoal. The default is MachinePrecision for .gos 
    files, and Infinity for .tp and .exa files *)
 importPacking[filename_String, fmt_String : Automatic, d_Integer : Automatic,

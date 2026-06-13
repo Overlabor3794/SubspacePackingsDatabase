@@ -42,10 +42,12 @@ arrayType[array_List] := Module[{dims, dim},
 
 (* List of distict triple products, including degenerate ones *)
 (* First argument can be an a frame, a Gram matrix, a triple product tensor,
-   a triple product slice, a triple product position map, or a triple product
-   slice position map *)
-(* The available option is WorkingPrecision and is used to determine the number
-   of signifcant digits used for comparing triple products *)
+   a triple product slice, a triple product lookup table, or a triple product
+   slice lookup table *)
+(* The available option are
+   WorkingPrecision: Determines the number of signifcant digits used for
+     comparing triple products
+   PackArray: Determines whether the triple product tensor is to be packed *)
 Options[distinctTP] = {WorkingPrecision -> Automatic, PackArray -> Automatic};
 distinctTP[array_, OptionsPattern[]] := 
  Module[{type, TP, nTP, aprec, wprec, pack, dims, positions, base},
@@ -93,6 +95,7 @@ distinctTP[array_, OptionsPattern[]] :=
 (* Number of distict triple products, including degenerate ones *)
 numberTP[array_, opts : OptionsPattern[]] := Length@distinctTP[array, opts]
 
+(* Core code of moment and momentnd *)
 Options[momentCore] = {PrecisionGoal -> Automatic, Method -> Automatic, ND -> False};
 momentCore[array_, m_, OptionsPattern[]] := Module[{gprec, wprec, type, Tm, CS},
   gprec = OptionValue[PrecisionGoal];
