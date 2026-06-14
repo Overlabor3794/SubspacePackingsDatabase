@@ -44,7 +44,7 @@ importPacking::fmt = "`1` is an invalid format. Valid formats are\
 Options[gosImport] = Options[importPacking];
 gosImport[filename_, d_, n_, OptionsPattern[]] := Module[{gprec, plist, dd, nn},
   gprec = OptionValue[PrecisionGoal];
-  plist = setPrecision[Import[filename, "List"], gprec];
+  plist = setPrecision[Import[filename, "List"], gprec, 5];
   If[d === Automatic || n === Automatic,
    {dd, nn} = extractDimensions[filename],
    {dd, nn} = {d, n}];
@@ -57,7 +57,7 @@ tpImport[filename_, fmt_, OptionsPattern[]] := Module[{gprec, LUT, lcfmt},
   gprec = OptionValue[PrecisionGoal];
   LUT = Import[filename, "List"];
   LUT = {ToExpression@LUT[[1]], ImportString[LUT[[2]], "JSON"]};
-  LUT[[1]] = setPrecision[LUT[[1]], gprec];
+  LUT[[1]] = setPrecision[LUT[[1]], gprec, 5];
   lcfmt = If[fmt === Automatic, "tp", ToLowerCase[fmt]];
   Which[
    lcfmt == "tp", arrayfromLUT[LUT],
@@ -212,4 +212,11 @@ lutExport[LUT_, filename_] := Module[{distinct, array, dim, ext, d, n, \[Alpha]}
   ]
 
 
-setPrecision[expr_, prec_] := If[NumericQ[prec], SetPrecision[expr, prec], expr]
+setPrecision[expr_, prec_, guard_ : 0] :=
+ If[NumericQ[prec],
+  If[guard === 0,
+   SetPrecision[expr, prec],
+   SetPrecision[SetPrecision[expr, prec + guard], prec]
+  ],
+  expr
+ ]
