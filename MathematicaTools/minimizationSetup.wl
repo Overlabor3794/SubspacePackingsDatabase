@@ -7,10 +7,9 @@
 
 (* Coherence of a sythesis operator Phi *)
 Coherence[Phi_] := Module[{V},
-  V = Phi\[ConjugateTranspose];
-  Max[Flatten[Table[Abs[V[[i]]\[Conjugate] . V[[j]]]/(Norm[V[[i]]] Norm[V[[j]]]),
-      {i, 1, Length[V]}, {j, i + 1, Length[V]}]]]
-  ]
+  V = Normalize /@ ConjugateTranspose[Phi];
+  Max@Abs@UpperTriangularize[V . V\[ConjugateTranspose], 1]
+]
 
 (* p-frame potential of a sythesis operator Phi *)
 pFramePotential[Phi_, p_] := Module[{V = Phi\[ConjugateTranspose]},
@@ -18,12 +17,21 @@ pFramePotential[Phi_, p_] := Module[{V = Phi\[ConjugateTranspose]},
       {i, 1, Length[V]}, {j, i + 1, Length[V]}]
   ]
 
+Clear[pFramePotential2]
+Options[pFramePotential2] = Options[Total];
+pFramePotential2[Phi_, p_, OptionsPattern[]] := Module[{V, CS},
+  CS = OptionValue[Method];
+  If[CS === Automatic && Precision[Phi] === MachinePrecision,
+   CS = "CompensatedSummation"];
+  V = Normalize /@ ConjugateTranspose[Phi];
+  2 Total[Abs[UpperTriangularize[V . V\[ConjugateTranspose], 1]]^p, 2, Method -> CS]
+  ]
+
 (* Welch bound [lower bound on the coherence], acheived if and only if Phi is an
    equiangular tight frame *)
 Welch[d_, n_] := Sqrt[(n - d)/(d (n - 1))]
 
 
-(* Values of d and n should be set before running this block . *)
 (* variable vector list *)
 PhiVar[d_, n_] := Table[a[i, j] + b[i, j] I, {i, 1, d}, {j, 1, n}];
 
