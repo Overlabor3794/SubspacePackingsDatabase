@@ -86,8 +86,7 @@ tpValidate[filename_, OptionsPattern[]] :=
   TP1 = arrayfromLUT[LUT];
   GM = GMfromTP[TP1];
   pass = True;
-  If[N[Abs[GM], wprec] != 
-    N[SparseArray[{{i_, i_} -> 1, {_, _} -> Welch[d, n]}, {n, n}], wprec],
+  If[N[Abs[GM], wprec] != N[SparseArray[{i_, i_} -> 1, {n, n}, Welch[d, n]], wprec],
    coherenceMessage[filename <> " "];
    pass = False];
   If[! HermitianMatrixQ[GM, Tolerance -> 10^(-wprec)],
@@ -131,8 +130,7 @@ exaValidate[filename_, OptionsPattern[]] :=
   {d, n} = extractDimensions[filename];
   GM = GMfromTP[TP1];
   pass = True;
-  If[N[Abs[GM], wprec] != 
-    N[SparseArray[{{i_, i_} -> 1, {_, _} -> Welch[d, n]}, {n, n}], wprec],
+  If[N[Abs[GM], wprec] != N[SparseArray[{i_, i_} -> 1, {n, n}, Welch[d, n]], wprec],
    coherenceMessage[filename];
    pass = False];
   If[! HermitianMatrixQ[GM, Tolerance -> 10^(-wprec)],
