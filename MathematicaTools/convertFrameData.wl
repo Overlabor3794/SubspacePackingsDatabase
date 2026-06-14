@@ -45,6 +45,15 @@ SOfromGM[G_, r_ : Automatic, OptionsPattern[]] :=
    (U . Sqrt[\[CapitalLambda]])\[ConjugateTranspose]
   ] /; IntegerQ[r] || r === Automatic
 
+(* Gram matrix from triple product slice *)
+GMfromTPslice[TPS_, i_ : Automatic] := Module[{j, const},
+  If[i === Automatic,
+   j = PositionLargest[Abs@Diagonal[TPS]][[1]],
+   j = i];
+  const = ConstantArray[TPS[[j]], Length@TPS];
+  TPS/Sqrt[const*Transpose[const]]
+  ]
+
 (* Gram matrix from triple product tensor *)
 (* currently implemented when SO has a vector not orthogonal to any other vector *)
 Options[GMfromTP] = {Tolerance -> 10^(-6)};
