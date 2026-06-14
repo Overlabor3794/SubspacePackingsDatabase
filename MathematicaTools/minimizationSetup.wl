@@ -12,19 +12,13 @@ Coherence[Phi_] := Module[{V},
 ]
 
 (* p-frame potential of a sythesis operator Phi *)
-pFramePotential[Phi_, p_] := Module[{V = Phi\[ConjugateTranspose]},
-  2 Sum[(Abs[V[[i]]\[Conjugate] . V[[j]]]/(Norm[V[[i]]] Norm[V[[j]]]))^p,
-      {i, 1, Length[V]}, {j, i + 1, Length[V]}]
-  ]
-
-Clear[pFramePotential2]
-Options[pFramePotential2] = Options[Total];
-pFramePotential2[Phi_, p_, OptionsPattern[]] := Module[{V, CS},
+Options[pFramePotential] = Options[Total];
+pFramePotential[Phi_, p_, opts : OptionsPattern[]] := Module[{V, CS},
   CS = OptionValue[Method];
   If[CS === Automatic && Precision[Phi] === MachinePrecision,
    CS = "CompensatedSummation"];
   V = Normalize /@ ConjugateTranspose[Phi];
-  2 Total[Abs[UpperTriangularize[V . V\[ConjugateTranspose], 1]]^p, 2, Method -> CS]
+  2 Total[Abs[UpperTriangularize[V . V\[ConjugateTranspose], 1]]^p, 2, opts, Method -> CS]
   ]
 
 (* Welch bound [lower bound on the coherence], acheived if and only if Phi is an

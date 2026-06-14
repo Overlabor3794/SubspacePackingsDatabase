@@ -69,7 +69,7 @@ tpImport[filename_, fmt_, OptionsPattern[]] := Module[{gprec, LUT, lcfmt},
 
 (* Internal function to import .exa files *)
 Options[exaImport] = Options[importPacking];
-exaImport[filename_, fmt_, OptionsPattern[]] := Module[{gprec, LUT, lcfmt, output},
+exaImport[filename_, fmt_, OptionsPattern[]] := Module[{gprec, LUT, lcfmt},
   gprec = OptionValue[PrecisionGoal];
   LUT = Import[filename, "List"];
   LUT = {ToExpression@LUT[[1]], ImportString[LUT[[2]], "JSON"]};

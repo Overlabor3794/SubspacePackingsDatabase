@@ -16,6 +16,7 @@
 (* "exaForceTest" is used in exaValidate. Default is False unless a corresponding
    .tp file does not exist *)
 SetAttributes[validatePackings, Listable];
+Options[validatePackings] = {WorkingPrecision -> MachinePrecision};
 validatePackings[pattern_String, opts : OptionsPattern[]] := 
  Module[{files, basenames, validators, exaArg, validfiles, validator},
   files = FileNames[pattern];
@@ -50,12 +51,12 @@ validatePackings::Pattern = "No valid files found matching \"`1`\".";
 (* Checks that the coherence is equal to the Welch bound, that the frame is
    unit-norm, and that the number of distinct triple products is equal to the
    number in the file name *)
-gosValidate[filename_, OptionsPattern[]] := Module[{Phi, d, n, pass},
-  Phi = importPacking[filename];
+gosValidate[filename_, OptionsPattern[]] := Module[{d, n, Phi, pass},
+  {d, n} = extractDimensions[filename];
+  Phi = importPacking[filename, d, n];
   If[arrayType[Phi] =!= "SO",
    contentsMessage[filename];
    Return[]];
-  {d, n} = extractDimensions[filename];
   pass = True;
   If[Coherence[Phi] != N@Welch[d, n],
    coherenceMessage[filename];
@@ -74,7 +75,7 @@ gosValidate[filename_, OptionsPattern[]] := Module[{Phi, d, n, pass},
 (* Checks that the Gram matrix is the Gram matrix of an ETF, that the number of
    distinct triple products is equal to the number in the file name, and that
    the contents match the contents of the corresponding .exa file *)
-Options[tpValidate] = {WorkingPrecision -> MachinePrecision};
+Options[tpValidate] = Options[validatePackings];
 tpValidate[filename_, OptionsPattern[]] := 
  Module[{wprec, LUT, d, n, TP1, TP2, GM, extfile, pass},
   wprec = OptionValue[WorkingPrecision];
@@ -112,23 +113,21 @@ tpValidate[filename_, OptionsPattern[]] :=
    distinct triple products is equal to the number in the file name, and that
    the contents match the contents of the corresponding .tp file *)
 (* If corresponding .tp file exists, then all checks are skipped (unless the
-   option "exaForceTest" is set to True) and tpValidate compares with the
+   option "exaForceTest" is set to True) as tpValidate compares with the
    existing .tp file *)
-Options[exaValidate] = {WorkingPrecision -> MachinePrecision, 
-   "exaForceTest" -> False};
+Options[exaValidate] = {Options[validatePackings], "exaForceTest" -> False};
 exaValidate[filename_, OptionsPattern[]] :=
  Module[{wprec, TP1, TP2, d, n, GM, pass},
   If[FileExistsQ[replaceExt[filename, "tp"] && ! OptionValue["exaForceTest"]],
    tpExistsMessage[filename];
    Return[]];
   wprec = OptionValue[WorkingPrecision];
-  TP1 = importPacking[filename, "Lookup table", PrecisionGoal -> wprec + 10];
-  If[arrayType[TP1] =!= "TPS LUT",
+  TP1 = importPacking[filename, "TP slice", PrecisionGoal -> wprec + 10];
+  If[arrayType[TP1] =!= "TPS",
    contentsMessage[filename];
    Return[]];
-  TP1 = TPfromTPslice@arrayfromLUT[TP1];
   {d, n} = extractDimensions[filename];
-  GM = GMfromTP[TP1];
+  GM = GMfromTPslice[TP1];
   pass = True;
   If[N[Abs[GM], wprec] != N[SparseArray[{i_, i_} -> 1, {n, n}, Welch[d, n]], wprec],
    coherenceMessage[filename];
@@ -139,7 +138,7 @@ exaValidate[filename_, OptionsPattern[]] :=
   If[N[GM . GM, wprec] != N[n/d GM, wprec],
    GMProjectionMessage[filename];
    pass = False];
-  TP1 = arraytoLUT[TP1];
+  TP1 = arraytoLUT@TPfromTPslice[TP1];
   If[Length[TP1[[1]]] != extractNumberTP[filename],
    numberTPMessage[filename <> " "];
    pass = False];
