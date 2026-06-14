@@ -24,14 +24,11 @@ normalizeSO[Phi_] := normalizeAO[Phi\[ConjugateTranspose]]\[ConjugateTranspose]
 GMfromSO[Phi_] := Phi\[ConjugateTranspose] . Phi
 
 (* Triple product tensor from Gram matrix *)
-TPfromGM[G_] := Module[{n = Length[G]},
-  Table[G[[i, j]] G[[j, k]] G[[k, i]], {i, 1, n}, {j, 1, n}, {k, 1, n}]
-  ]
+TPfromGM[G_] :=
+  #*Transpose[#, {3, 1, 2}]*Transpose[#, {2, 3, 1}] &@ ConstantArray[G, Length@G]
 
 (* Triple product slice from Gram matrix *)
-TPslicefromGM[G_, i_ : 1] := Module[{n = Length[G]},
-  Table[G[[i, j]] G[[j, k]] G[[k, i]], {j, 1, n}, {k, 1, n}]
-  ]
+TPslicefromGM[G_, i_ : 1] := G*Outer[Times, G[[i]], G[[All, i]]]
 
 (* Triple product tensor from vector list *)
 TPfromSO[Phi_] := TPfromGM[GMfromSO[Phi]]
