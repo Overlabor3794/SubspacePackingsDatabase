@@ -56,16 +56,14 @@ GMfromTPslice[TPS_, i_ : Automatic] := Module[{j, const},
 
 (* Gram matrix from triple product tensor *)
 (* currently implemented when SO has a vector not orthogonal to any other vector *)
-Options[GMfromTP] = {Tolerance -> 10^(-6)};
-GMfromTP[T_, OptionsPattern[]] := Module[{n, k},
-  n = Dimensions[T][[1]];
-  For[k = 1, k <= n, k++,
-   If[! AnyTrue[Flatten@T[[All, k, k]], Abs[#] < OptionValue[Tolerance] &],
-    Break[]];
-   ];
-  If[k > n, k = 1];
-  Table[T[[i, j, k]]/(T[[i, k, k]] T[[j, k, k]])^(1/2),
-      {i, 1, Length[T]}, {j, 1, Length[T]}]
+Options[GMfromTP] = {Tolerance -> 10^(-10)};
+GMfromTP[TP_, OptionsPattern[]] := Module[{n, j},
+  n = Length[TP];
+  j = Select[Range@Length[TP],
+     ! AnyTrue[TP[[#]], Abs[##] < OptionValue[Tolerance] &, 2] &, 1];
+  If[j === {}, Return[$Failed]];
+  j = j[[1]];
+  GMfromTPslice[TP[[j]], j]
   ]
 
 (* Vector list from triple product tensor *)
