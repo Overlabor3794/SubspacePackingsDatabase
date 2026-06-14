@@ -73,23 +73,22 @@ SOfromTP[TP_, r_Integer : Automatic, opts : OptionsPattern[]] :=
  SOfromGM[GMfromTP[TP], r, opts]
 
 (* Faithful matrix plot for synthesis operator or Gram matrix *)
-FrameVisualize[M_] := 
+FrameVisualize[M_] :=
  MatrixPlot[Hue[(Arg[#] + Pi)/(2 Pi), Abs[#]] & /@ # & /@ M, Frame -> False]
 
 (* Game of Sloanes representation of a synthesis operator *)
 GoSfromSO[Phi_] := Join[Re[#], Im[#]] &@ Flatten[Phi\[Transpose]]
 
 (* Synthesis operator from a Games of Sloanes representation *)
-SOfromGoS[gos_, {d_, n_}] := 
+SOfromGoS[gos_, {d_, n_}] :=
  Transpose@ArrayReshape[gos[[;; d n]] + I gos[[d n + 1 ;;]], {n, d}]
 
 (* Convert between triple product tensor and one slice of the triple
    product tensor *)
 TPslicefromTP[TP_, i_ : 1] := TP[[i]]
-TPfromTPslice[TPS_, i_ : 1] := Module[{T1, T2, T3, den},
-  T1 = ConstantArray[TPS, Length[TPS]];
+TPfromTPslice[TPS_, i_ : 1] := Module[{T1, T2, T3},
+  T1 = ConstantArray[TPS/TPS[[i]], Length@TPS];
   T2 = Transpose[T1, {3, 1, 2}];
   T3 = Transpose[T1, {2, 3, 1}];
-  den = 1/Outer[Times, #, #, #] &@TPS[[i]];
-  TPS[[i, i]]*T1*T2*T3*den
+  TPS[[i, i]]*T1*T2*T3
   ]
