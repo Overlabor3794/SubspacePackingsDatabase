@@ -4,15 +4,15 @@
 (* Functions to compute invariants of frames *)
 
 
-(* Takes in an array containing frame data and returns its type *)
+(* Takes in an array containing frame data and returns its type as a string *)
 (* The values returned are
-   - "SO"    : Sythesis operator
-   - "GM"    : Gram matrix
-   - "TP"    : Triple product tensor
-   - "TPS"   : Triple product slice
-   - "TPPM"  : Triple product tensor position map
-   - "TPSPM" : Triple product slice position map
-   - $Failed : If array is none of the above
+   - "SO"      : Sythesis operator (frame)
+   - "GM"      : Gram matrix
+   - "TP"      : Triple product tensor
+   - "TPS"     : Triple product slice
+   - "TP LUT"  : Triple product tensor lookup table
+   - "TPS LUT" : Triple product slice lookup table
+   - $Failed   : If array is none of the above
   *)
 (* If array is a Gram matrix, then it must be the Gram matrix of a normalized
    frame; otherwise the function will return "TPS" *)
@@ -21,12 +21,14 @@ arrayType[array_List] := Module[{dims, dim},
   dims = Dimensions[array];
   dim = Length[dims];
   Which[
-   dim == 1,
-   If[! DeleteDuplicates[Head /@ array] === {Rule}, Return[$Failed]];
-   If[Length[array[[1, 1, 1]]] == 3, Return["TPPM"]];
-   If[Length[array[[1, 1, 1]]] == 2, Return["TPSPM"]],
+   dim == 1 && dims[[1]] == 2,
+   If[ArrayDepth[array[[2]]] == 2, Return["TPS LUT"]];
+   If[ArrayDepth[array[[2]]] == 3, Return["TP LUT"]],
    dim == 2,
-   If[! MatrixQ[array], Return[$Failed]];
+   If[! MatrixQ[array] && dims[[1]] == 2,
+    If[ArrayDepth[array[[2]]] == 2, Return["TPS LUT"]];
+    If[ArrayDepth[array[[2]]] == 3, Return["TP LUT"]]
+    ];
    If[dims[[1]] < dims[[2]], Return["SO"]];
    If[dims[[1]] == dims[[2]],
     If[DeleteDuplicates[N@Diagonal[array], Abs[#1 - #2] < 10^(-10) &] == {1},
@@ -40,28 +42,47 @@ arrayType[array_List] := Module[{dims, dim},
 
 (* List of distict triple products, including degenerate ones *)
 (* First argument can be an a frame, a Gram matrix, a triple product tensor,
-   a triple product slice, a triple product position map, or a triple product
-   slice position map *)
-(* The available option is WorkingPrecision and is used to determine the number
-   of signifcant digits used for comparing triple products *)
-Options[distinctTP] = {WorkingPrecision -> Automatic, PackArray -> True};
+   a triple product slice, a triple product lookup table, or a triple product
+   slice lookup table *)
+(* The available option are
+   WorkingPrecision: Determines the number of signifcant digits used for
+     comparing triple products
+   PackArray: Determines whether the triple product tensor is to be packed *)
+Options[distinctTP] = {WorkingPrecision -> Automatic, PackArray -> Automatic};
 distinctTP[array_, OptionsPattern[]] := 
- Module[{type, TP, nTP, wprec, dims, positions, base},
+ Module[{type, TP, nTP, aprec, wprec, pack, dims, positions, base},
   type = arrayType[array];
-  If[type === "TPPM", Return@array[[All, 2]]];
+  If[type === "TP LUT", Return@array[[1]]];
   Which[
-   type === "TPSPM", TP = TPfromTPslice@arrayFromPositionMap[array],
-   type === "SO", TP = TPfromSO[array],
+   type === "TPS LUT", TP = TPfromTPslice@arrayfromLUT[array],
+   type === "SO",
+   TP = TPfromSO[array],
    type === "GM", TP = TPfromGM[array],
    type === "TPS", TP = TPfromTPslice[array],
    type === "TP", TP = array,
    True, Return[$Failed]
    ];
+  aprec = Precision[array];
   wprec = OptionValue[WorkingPrecision];
-  If[wprec === Automatic, wprec = MachinePrecision];
-  If[OptionValue[PackArray],
-   nTP = Developer`ToPackedArray[N[TP, wprec + 5], Complex],
-   nTP = N[N[TP, wprec + 5], wprec]
+  pack = OptionValue[PackArray];
+  Which[
+   wprec === pack === Automatic,
+   If[aprec >= MachinePrecision + 5,
+    wprec = MachinePrecision;
+    pack = True,
+    wprec = Max[1, aprec - 5];
+    pack = False;
+    ],
+   wprec === Automatic && pack =!= Automatic,
+   wprec = If[aprec >= MachinePrecision + 5, MachinePrecision, Max[1, aprec - 5]],
+   wprec =!= Automatic && pack === Automatic,
+   pack = If[wprec === MachinePrecision, True, False]
+   ];
+  nTP = SetPrecision[TP, wprec + 5];
+  If[pack === True,
+   nTP = Developer`ToPackedArray[nTP, Complex],
+   nTP = Chop[nTP, 10^(5 - Accuracy[array])];
+   nTP = SetPrecision[nTP, wprec];
    ];
   dims = Dimensions[nTP];
   nTP = Flatten[nTP];
@@ -74,21 +95,22 @@ distinctTP[array_, OptionsPattern[]] :=
 (* Number of distict triple products, including degenerate ones *)
 numberTP[array_, opts : OptionsPattern[]] := Length@distinctTP[array, opts]
 
+(* Core code of moment and momentnd *)
 Options[momentCore] = {PrecisionGoal -> Automatic, Method -> Automatic, ND -> False};
-momentCore[array_, m_, OptionsPattern[]] := Module[{prec, wprec, type, Tm, CS},
-  prec = OptionValue[WorkingPrecision];
-  If[prec === Automatic, prec = Precision[array]];
-  wprec = prec + If[prec === MachinePrecision, 0, 5];
+momentCore[array_, m_, OptionsPattern[]] := Module[{gprec, wprec, type, Tm, CS},
+  gprec = OptionValue[PrecisionGoal];
+  If[gprec === Automatic, gprec = Precision[array]];
+  wprec = gprec + If[gprec === MachinePrecision, 0, 5];
   type = arrayType[array];
   Which[
-   type === "TPPM",
+   type === "TP LUT",
    Tm = array;
-   Tm[[All, 2]] = N[Tm[[All, 2]], wprec]^m;
-   Tm = arrayFromPositionMap[Tm],
-   type === "TPSPM",
+   Tm[[1]] = N[Tm[[1]], wprec]^m;
+   Tm = arrayfromLUT[Tm],
+   type === "TPS LUT",
    Tm = array;
-   Tm[[All, 2]] = N[Tm[[All, 2]], wprec]^m;
-   Tm = TPfromTPslice@arrayFromPositionMap[Tm],
+   Tm[[1]] = N[Tm[[1]], wprec]^m;
+   Tm = TPfromTPslice@arrayfromLUT[Tm],
    type === "SO", Tm = TPfromGM[GMfromSO[N[array, wprec]]^m],
    type === "GM", Tm = TPfromGM[N[array, wprec]^m],
    type === "TPS", Tm = TPfromTPslice[N[array, wprec]^m],
@@ -97,7 +119,7 @@ momentCore[array_, m_, OptionsPattern[]] := Module[{prec, wprec, type, Tm, CS},
    ];
   CS = OptionValue[Method];
   If[CS === Automatic,
-   If[prec === MachinePrecision,
+   If[wprec === MachinePrecision,
     CS = "CompensatedSummation",
     CS = Automatic
     ]
@@ -105,7 +127,7 @@ momentCore[array_, m_, OptionsPattern[]] := Module[{prec, wprec, type, Tm, CS},
   If[OptionValue[ND],
    Do[Tm[[i, i, All]] = Tm[[i, All, i]] = Tm[[All, i, i]] = 0, {i, Length[Tm]}]
    ];
-  N[Total[Tm, 3, Method -> CS], prec]
+  N[Total[Tm, 3, Method -> CS], gprec]
   ]
 
 (* Moments [sum of powers of triple products] *)

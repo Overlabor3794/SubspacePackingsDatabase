@@ -38,61 +38,72 @@ exactifyTuple[\[Alpha]_, OptionsPattern[]] :=
   Table[roots[[positionSmallest[Abs /@ (\[Alpha][[j]] - roots)]]], {j, 1, deg}]
   ]
 
-(* Converts an array to a list of array positions -> distinct elements *)
-Options[arrayPositionMap] = {WorkingPrecision -> Automatic};
-arrayPositionMap[array_, OptionsPattern[]] := Module[{prec, aprec},
-  prec = OptionValue[WorkingPrecision];
+(* Converts an array to a lookup table *)
+Options[arraytoLUT] = {WorkingPrecision -> Automatic, PackArray -> Automatic};
+arraytoLUT[array_, OptionsPattern[]] := 
+ Module[{aprec, wprec, pack ,narray, distinct, LUT, dims, positions, base},
   aprec = Precision[array];
-  If[prec === Automatic,
-   prec = If[aprec >= MachinePrecision + 5, MachinePrecision, aprec - 5]
+  wprec = OptionValue[WorkingPrecision];
+  pack = OptionValue[PackArray];
+  Which[
+   wprec === pack === Automatic,
+   If[aprec >= MachinePrecision + 5,
+    wprec = MachinePrecision;
+    pack = True,
+    wprec = Max[1, aprec - 5];
+    pack = False;
+    ],
+   wprec === Automatic && pack =!= Automatic,
+   wprec = If[aprec >= MachinePrecision + 5, MachinePrecision, Max[1, aprec - 5]],
+   wprec =!= Automatic && pack === Automatic,
+   pack = If[wprec === MachinePrecision, True, False]
    ];
-  If[aprec === MachinePrecision,
-   Reap[MapIndexed[Sow[{#1, #2}, nChop[SetPrecision[#1, $MachinePrecision], prec]] &,
-      array, {ArrayDepth[array]}], _, #2[[All, 2]] -> #2[[1, 1]] &][[2]]
-   ,
-   Reap[MapIndexed[Sow[{#1, #2}, nChop[#1, prec]] &, array, {ArrayDepth[array]}],
-         _, #2[[All, 2]] -> #2[[1, 1]] &][[2]]
-   ]
+  narray = SetPrecision[array, wprec + 5];
+  If[pack === True,
+   narray = Developer`ToPackedArray[narray, Complex],
+   narray = Chop[narray, 10^(5 - Accuracy[narray])];
+   narray = SetPrecision[narray, wprec];
+   ];
+  dims = Dimensions[narray];
+  narray = Flatten[narray];
+  distinct = PositionIndex[narray];
+  LUT = AssociationThread[Keys[distinct] -> Range[0, Length[distinct] - 1]];
+  LUT = ArrayReshape[Lookup[LUT, narray], dims];
+  positions = First /@ Values[distinct];
+  base = Reverse@FoldList[Times, 1, Reverse@dims[[2 ;;]]];
+  positions = Mod[Quotient[# - 1, base], dims] & /@ positions + 1;
+  distinct = Extract[array, positions];
+  {distinct, LUT}
   ]
 
-nChop[x_, prec_] := N[Chop[N[x, prec + 4], 10^(-prec)], prec]
-SetAttributes[nChop, Listable];
-
-(* Covert an array position map to a standard array *)
-arrayFromPositionMap[PM_] := Normal@SparseArray@Flatten[Thread /@ PM, 1];
+(* Converts a lookup table to an array *)
+arrayfromLUT[LUT_] := 
+ LUT[[2]] /. AssociationThread[Range[0, Length[LUT[[1]]] - 1] -> LUT[[1]]]
 
 (* Exactify a position map of triple products, taking advantage of possible
    Galois conjugates *)
-Options[exactifyTPPM] = {RationalCoefficients -> False, 
+Options[exactifyLUT] = {RationalCoefficients -> False, 
    SimplificationMethod -> RootReduce, NumericalRefinement -> False, 
    RefinementFactor -> 10};
-exactifyTPPM[TPPM_, opts : OptionsPattern[]] := Module[{elts, positions, exactelts},
-  elts = TPPM[[All, 2]];
-  positions = TPPM[[All, 1]];
-  exactelts = exactifyTuple[elts, opts];
-  Thread[positions -> exactelts]
-  ]
+exactifyLUT[LUT_, opts : OptionsPattern[]] :=
+ {exactifyTuple[LUT[[1]], opts], LUT[[2]]}
 
 (* Exactify a triple product tensor, taking advantage of possible Galois conjugates *)
-Options[exactifyTP] = {WorkingPrecision -> MachinePrecision,
+Options[exactifyTP] = {WorkingPrecision -> Automatic,
    RationalCoefficients -> False, SimplificationMethod -> RootReduce,
    NumericalRefinement -> False, RefinementFactor -> 10};
-exactifyTP[T_, opts : OptionsPattern[]] := arrayFromPositionMap[
-  exactifyTPPM[
-   arrayPositionMap[T, FilterRules[{opts}, Options[arrayPositionMap]]],
-   FilterRules[{opts}, Options[exactifyTPPM]]
-   ]
+exactifyTP[TP_, opts : OptionsPattern[]] := Module[{fopts, tmp},
+  fopts = FilterRules[{opts}, Options[arraytoLUT]];
+  tmp = arraytoLUT[TP, fopts];
+  fopts = FilterRules[{opts}, Options[exactifyLUT]];
+  tmp = exactifyLUT[tmp, fopts];
+  arrayfromLUT[tmp]
   ]
 
 (* Exactify a position map of triple products naively using RootApproximant *)
-exactifyTPPMalt[TPPM_] := Module[{elts, positions, exactelts},
-  elts = TPPM[[All, 2]];
-  positions = TPPM[[All, 1]];
-  exactelts = RootApproximant /@ elts;
-  Thread[positions -> exactelts]
-  ]
+exactifyLUTalt[LUT_] := {RootApproximant /@ LUT[[1]], LUT[[2]]}
 
 (* Exactify a triple product tensor naively using RootApproximant *)
-Options[exactifyTPalt] = {WorkingPrecision -> MachinePrecision};
-exactifyTPalt[T_, opts : OptionsPattern[]] := 
- arrayFromPositionMap@exactifyTPPMalt@arrayPositionMap[T, opts]
+Options[exactifyTPalt] = {WorkingPrecision -> Automatic};
+exactifyTPalt[TP_, opts : OptionsPattern[]] := 
+ arrayfromLUT@exactifyLUTalt@arraytoLUT[TP, opts]
