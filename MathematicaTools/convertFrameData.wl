@@ -35,11 +35,15 @@ TPfromSO[Phi_] := TPfromGM[GMfromSO[Phi]]
 
 (* Vector list from Gram matrix *)
 Options[SOfromGM] = {Tolerance -> 10^(-6)};
-SOfromGM[G_, OptionsPattern[]] := Module[{d, U, \[CapitalLambda], V},
-  d = MatrixRank[G, Tolerance -> OptionValue[Tolerance]];
+Clear[SOfromGM, SOfromTP];
+SOfromGM[G_, r_ : Automatic, OptionsPattern[]] :=
+ Module[{d, U, \[CapitalLambda], V},
+  d = r;
+  If[d === Automatic,
+  d = MatrixRank[G, Tolerance -> OptionValue[Tolerance]]];
    {U, \[CapitalLambda], V} = SingularValueDecomposition[G, UpTo[d]];
    (U . Sqrt[\[CapitalLambda]])\[ConjugateTranspose]
-   ]
+  ] /; IntegerQ[r] || r === Automatic
 
 (* Gram matrix from triple product tensor *)
 (* currently implemented when SO has a vector not orthogonal to any other vector *)
@@ -57,9 +61,9 @@ GMfromTP[T_, OptionsPattern[]] := Module[{n, k},
 
 (* Vector list from triple product tensor *)
 (* currently implemented when SO has a vector not orthogonal to any other vector *)
-Options[SOfromTP] = {Tolerance -> 10^(-6)};
-SOfromTP[T_, OptionsPattern[]] := 
- SOfromGM[GMfromTP[T], Tolerance -> OptionValue[Tolerance]]
+Options[SOfromTP] = Options[SOfromGM];
+SOfromTP[TP_, r_Integer : Automatic, opts : OptionsPattern[]] :=
+ SOfromGM[GMfromTP[TP], r, opts]
 
 (* Faithful matrix plot for synthesis operator or Gram matrix *)
 FrameVisualize[M_] := 
