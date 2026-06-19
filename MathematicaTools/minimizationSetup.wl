@@ -47,7 +47,7 @@ MinPhiQNp[Phi0_, p_, opts : OptionsPattern[]] := Module[{d, n, min},
   min = FindMinimum[pFramePotential[PhiVar[d, n], p], varcons[Phi0],
     opts, Method -> "QuasiNewton", MaxIterations -> 1000, 
     WorkingPrecision -> MachinePrecision];
-  {min[[1]], PhiVar[d, n] /. min[[2]]}
+  {min[[1]], normalizeSO[PhiVar[d, n] /. min[[2]]]}
   ]
 
 (* minimize coherence with PrincipalAxis [OFTEN FAILS] *)
@@ -57,7 +57,7 @@ MinPhiPA[Phi0_, opts : OptionsPattern[]] := Module[{d, n, min},
   min = FindMinimum[Coherence[PhiVar[d, n]], varcons[Phi0],
     opts, Method -> "PrincipalAxis", MaxIterations -> Automatic, 
     WorkingPrecision -> MachinePrecision];
-  {min[[1]], PhiVar[d, n] /. min[[2]]}
+  {min[[1]], normalizeSO[PhiVar[d, n] /. min[[2]]]}
   ]
 
 (* random seed vector list *)
