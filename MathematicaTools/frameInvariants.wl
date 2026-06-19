@@ -25,7 +25,7 @@ arrayType[array_List] := Module[{dims, dim},
    If[ArrayDepth[array[[2]]] == 2, Return["TPS LUT"]];
    If[ArrayDepth[array[[2]]] == 3, Return["TP LUT"]],
    dim == 2,
-   If[! MatrixQ[array] && dims[[1]] == 2,
+   If[dims[[1]] == 2 && ! MatrixQ[array],
     If[ArrayDepth[array[[2]]] == 2, Return["TPS LUT"]];
     If[ArrayDepth[array[[2]]] == 3, Return["TP LUT"]]
     ];
@@ -81,7 +81,7 @@ distinctTP[array_, OptionsPattern[]] :=
   nTP = SetPrecision[TP, wprec + 5];
   If[pack === True,
    nTP = Developer`ToPackedArray[nTP, Complex],
-   nTP = Chop[nTP, 10^(5 - Accuracy[array])];
+   nTP = Chop[nTP, 10^(5 - SetPrecision[Accuracy[nTP], Infinity])];
    nTP = SetPrecision[nTP, wprec];
    ];
   dims = Dimensions[nTP];

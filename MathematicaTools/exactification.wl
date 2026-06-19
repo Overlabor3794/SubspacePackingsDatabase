@@ -61,7 +61,7 @@ arraytoLUT[array_, OptionsPattern[]] :=
   narray = SetPrecision[array, wprec + 5];
   If[pack === True,
    narray = Developer`ToPackedArray[narray, Complex],
-   narray = Chop[narray, 10^(5 - Accuracy[narray])];
+   narray = Chop[narray, 10^(5 - SetPrecision[Accuracy[narray], Infinity])];
    narray = SetPrecision[narray, wprec];
    ];
   dims = Dimensions[narray];
