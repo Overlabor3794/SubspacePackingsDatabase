@@ -20,22 +20,21 @@ positionSmallest[l_] := FirstPosition[l, Min[l]][[1]]
 Options[exactifyTuple] = {RationalCoefficients -> False, 
    SimplificationMethod -> RootReduce, NumericalRefinement -> False, 
    RefinementFactor -> 10};
-exactifyTuple[\[Alpha]_, OptionsPattern[]] := 
- Module[{deg, ESP, X, exactESP, f, roots, RC, SM, NR, RF},
-  RC = OptionValue[RationalCoefficients];
-  SM = OptionValue[SimplificationMethod];
-  NR = OptionValue[NumericalRefinement];
-  RF = OptionValue[RefinementFactor];
+exactifyTuple[\[Alpha]_, OptionsPattern[]] :=
+ Module[{SM, RF, deg, ESP, X, f, roots},
+  SM = OptionValue["SimplificationMethod"];
+  RF = OptionValue["RefinementFactor"];
   deg = Length[\[Alpha]];
   ESP = CoefficientList[Expand[Times @@ (X - \[Alpha])], X];
-  exactESP = If[RC,
-    Rationalize[#, 10^(-0.75 Precision[\[Alpha][[1]]])] & /@ ESP,
-    RootApproximant /@ ESP];
-  f = Plus @@ (exactESP . #^Range[0, deg]) &;
-  roots = If[NR,
-    Table[RootApproximant[N[Root[f, j], RF*N@Precision[Plus @@ \[Alpha]]]], {j, 1, deg}],
-    Table[SM[Root[f, j]], {j, 1, deg}]];
-  Table[roots[[positionSmallest[Abs /@ (\[Alpha][[j]] - roots)]]], {j, 1, deg}]
+  If[OptionValue["RationalCoefficients"],
+    ESP = Rationalize[ESP, 10^(-0.75 Precision[\[Alpha]])],
+    ESP = RootApproximant[ESP]];
+  f = ESP . #^Range[0, deg] &;
+  If[OptionValue["NumericalRefinement"],
+    roots = N[Root[f, #] & /@ Range[deg], RF*Precision[\[Alpha]]];
+    roots = RootApproximant[roots],
+    roots = SM[Root[f, #] & /@ Range[deg]]];
+  First /@ Nearest[roots, \[Alpha]]
   ]
 
 (* Converts an array to a lookup table *)
