@@ -1,13 +1,5 @@
 (* ::Package:: *)
 
-(* Extract packing dimensions (d,n) from file name *)
-extractDimensions[filename_String] := ToExpression[StringCases[filename,
-   RegularExpression["(\\d+)x(\\d+)"] -> {"$1", "$2"}][[1]]]
-
-(* Extract the number of triple products from file name *)
-extractNumberTP[filename_String] := ToExpression[StringCases[filename,
-   RegularExpression["(\\d+)x(\\d+)_(\\d+)"] -> {"$3"}][[1, 1]]]
-
 (* Function to import .gos, .tp, and .exa files *)
 (* For .gos files, the fmt argument is not applicable and is ignored if passed *)
 (* For .tp and .exa files, the available formats are "TP", "TP slice", and
@@ -210,13 +202,3 @@ lutExport[LUT_, filename_] := Module[{distinct, array, dim, ext, d, n, \[Alpha]}
   array = ExportString[array, "JSON", Compact -> True];
   Export[filename, {distinct, array}, "List"]
   ]
-
-
-setPrecision[expr_, prec_, guard_ : 0] :=
- If[NumericQ[prec],
-  If[guard === 0,
-   SetPrecision[expr, prec],
-   SetPrecision[SetPrecision[expr, prec + guard], prec]
-  ],
-  expr
- ]

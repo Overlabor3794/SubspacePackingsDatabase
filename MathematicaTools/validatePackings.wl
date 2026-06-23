@@ -96,7 +96,7 @@ tpValidate[filename_, OptionsPattern[]] :=
   If[N[GM . GM, wprec] != N[n/d GM, wprec],
    GMProjectionMessage[filename <> " "];
    pass = False];
-  If[Length[LUT[[1]]] != extractNumberTP[filename],
+  If[numberTP[LUT] != extractNumberTP[filename],
    numberTPMessage[filename <> " "];
    pass = False];
   TP2 = importPacking[replaceExt[filename, "exa"], "TP slice", 
@@ -139,7 +139,7 @@ exaValidate[filename_, OptionsPattern[]] :=
    GMProjectionMessage[filename];
    pass = False];
   TP1 = arraytoLUT@TPfromTPslice[TP1];
-  If[Length[TP1[[1]]] != extractNumberTP[filename],
+  If[numberTP[TP1] != extractNumberTP[filename],
    numberTPMessage[filename <> " "];
    pass = False];
   TP1[[1]] = N[TP1[[1]], wprec];
@@ -161,9 +161,3 @@ GMProjectionMessage[filename_] := failMessage[filename <> ": Gram matrix does no
 matchMessage[filename_, ext_] := failMessage[filename <> ": Mismatch against corresponding " <> ext <> " file"]
 tpExistsMessage[filename_] := Print[filename <> ": Skipping tests; will compare with corresponding .tp file"]
 passMessage[filename_] := Print[filename <> ": Passed all tests"]
-
-replaceExt[filename_, ext_] := Module[{split},
-  split = FileNameSplit[filename];
-  split[[-1]] = FileBaseName[split[[-1]]] <> "." <> ext;
-  FileNameJoin[split]
-  ]

@@ -4,42 +4,6 @@
 (* Functions to compute invariants of frames *)
 
 
-(* Takes in an array containing frame data and returns its type as a string *)
-(* The values returned are
-   - "SO"      : Sythesis operator (frame)
-   - "GM"      : Gram matrix
-   - "TP"      : Triple product tensor
-   - "TPS"     : Triple product slice
-   - "TP LUT"  : Triple product tensor lookup table
-   - "TPS LUT" : Triple product slice lookup table
-   - $Failed   : If array is none of the above
-  *)
-(* If array is a Gram matrix, then it must be the Gram matrix of a normalized
-   frame; otherwise the function will return "TPS" *)
-arrayType[array_List] := Module[{dims, dim},
-  If[Length[array] == 0, Return[$Failed]];
-  dims = Dimensions[array];
-  dim = Length[dims];
-  Which[
-   dim == 1 && dims[[1]] == 2,
-   If[ArrayDepth[array[[2]]] == 2, Return["TPS LUT"]];
-   If[ArrayDepth[array[[2]]] == 3, Return["TP LUT"]],
-   dim == 2,
-   If[dims[[1]] == 2 && ! MatrixQ[array],
-    If[ArrayDepth[array[[2]]] == 2, Return["TPS LUT"]];
-    If[ArrayDepth[array[[2]]] == 3, Return["TP LUT"]]
-    ];
-   If[dims[[1]] < dims[[2]], Return["SO"]];
-   If[dims[[1]] == dims[[2]],
-    If[DeleteDuplicates[N@Diagonal[array], Abs[#1 - #2] < 10^(-10) &] == {1},
-     Return["GM"],
-     Return["TPS"]]
-    ],
-   dim == 3 && dims[[1]] == dims[[2]] == dims[[3]], Return["TP"]
-   ];
-   Return[$Failed]
-  ]
-
 (* List of distict triple products, including degenerate ones *)
 (* First argument can be an a frame, a Gram matrix, a triple product tensor,
    a triple product slice, a triple product lookup table, or a triple product

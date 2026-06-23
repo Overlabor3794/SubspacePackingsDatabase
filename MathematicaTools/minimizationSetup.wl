@@ -5,27 +5,6 @@
 (* Functions to find complex frames minimizing the p-frame potential *)
 
 
-(* Coherence of a sythesis operator Phi *)
-Coherence[Phi_] := Module[{V},
-  V = Normalize /@ ConjugateTranspose[Phi];
-  Max@Abs@UpperTriangularize[V . V\[ConjugateTranspose], 1]
-]
-
-(* p-frame potential of a sythesis operator Phi *)
-Options[pFramePotential] = Options[Total];
-pFramePotential[Phi_, p_, opts : OptionsPattern[]] := Module[{V, CS},
-  CS = OptionValue[Method];
-  If[CS === Automatic && Precision[Phi] === MachinePrecision,
-   CS = "CompensatedSummation"];
-  V = Normalize /@ ConjugateTranspose[Phi];
-  2 Total[Abs[UpperTriangularize[V . V\[ConjugateTranspose], 1]]^p, 2, opts, Method -> CS]
-  ]
-
-(* Welch bound [lower bound on the coherence], acheived if and only if Phi is an
-   equiangular tight frame *)
-Welch[d_, n_] := Sqrt[(n - d)/(d (n - 1))]
-
-
 (* variable vector list *)
 PhiVar[d_, n_] := Table[a[i, j] + b[i, j] I, {i, 1, d}, {j, 1, n}];
 
@@ -39,6 +18,13 @@ varcons[Phi0_] := Module[{d, n},
      Im[Flatten[Phi0]]}
    ]
   ]
+
+(* random seed vector list *)
+rand[] := RandomReal[NormalDistribution[], {d, n}] +
+    RandomReal[NormalDistribution[], {d, n}] I
+
+rand[d_, n_] := RandomReal[NormalDistribution[], {d, n}] +
+    RandomReal[NormalDistribution[], {d, n}] I
 
 (* minimize p-frame potential with QuasiNewton *)
 (* vector list, p, options *)
@@ -59,13 +45,6 @@ MinPhiPA[Phi0_, opts : OptionsPattern[]] := Module[{d, n, min},
     WorkingPrecision -> MachinePrecision];
   {min[[1]], normalizeSO[PhiVar[d, n] /. min[[2]]]}
   ]
-
-(* random seed vector list *)
-rand[] := RandomReal[NormalDistribution[], {d, n}] +
-    RandomReal[NormalDistribution[], {d, n}] I
-
-rand[d_, n_] := RandomReal[NormalDistribution[], {d, n}] +
-    RandomReal[NormalDistribution[], {d, n}] I
 
 (* ETF conditions *)
 tightnessIdealGenerators[d_, n_] := Flatten[Table[
