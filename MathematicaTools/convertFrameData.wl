@@ -92,3 +92,45 @@ TPfromTPslice[TPS_, i_ : 1] := Module[{T1, T2, T3},
   T3 = Transpose[T1, {2, 3, 1}];
   TPS[[i, i]]*T1*T2*T3
   ]
+
+(* Converts an array to a lookup table *)
+Options[arraytoLUT] = {WorkingPrecision -> Automatic, "PackArray" -> Automatic};
+arraytoLUT[array_, OptionsPattern[]] :=
+ Module[{aprec, wprec, pack ,narray, distinct, LUT, dims, positions, base},
+  aprec = Precision[array];
+  wprec = OptionValue[WorkingPrecision];
+  pack = OptionValue["PackArray"];
+  Which[
+   wprec === pack === Automatic,
+   If[aprec >= MachinePrecision + 5,
+    wprec = MachinePrecision;
+    pack = True,
+    wprec = Max[1, aprec - 5];
+    pack = False;
+    ],
+   wprec === Automatic && pack =!= Automatic,
+   wprec = If[aprec >= MachinePrecision + 5, MachinePrecision, Max[1, aprec - 5]],
+   wprec =!= Automatic && pack === Automatic,
+   pack = If[wprec === MachinePrecision, True, False]
+   ];
+  narray = SetPrecision[array, wprec + 5];
+  If[pack === True,
+   narray = Developer`ToPackedArray[narray, Complex],
+   narray = Chop[narray, 10^(5 - SetPrecision[Accuracy[narray], Infinity])];
+   narray = SetPrecision[narray, wprec];
+   ];
+  dims = Dimensions[narray];
+  narray = Flatten[narray];
+  distinct = PositionIndex[narray];
+  LUT = AssociationThread[Keys[distinct] -> Range[0, Length[distinct] - 1]];
+  LUT = ArrayReshape[Lookup[LUT, narray], dims];
+  positions = First /@ Values[distinct];
+  base = Reverse@FoldList[Times, 1, Reverse@dims[[2 ;;]]];
+  positions = Mod[Quotient[# - 1, base], dims] & /@ positions + 1;
+  distinct = Extract[array, positions];
+  {distinct, LUT}
+  ]
+
+(* Converts a lookup table to an array *)
+arrayfromLUT[LUT_] := 
+ LUT[[2]] /. AssociationThread[Range[0, Length[LUT[[1]]] - 1] -> LUT[[1]]]
