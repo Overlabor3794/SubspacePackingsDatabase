@@ -16,7 +16,8 @@
 (* "exaForceTest" is used in exaValidate. Default is False unless a corresponding
    .tp file does not exist *)
 SetAttributes[validatePackings, Listable];
-Options[validatePackings] = {WorkingPrecision -> MachinePrecision};
+Options[validatePackings] = {WorkingPrecision -> MachinePrecision,
+   "exaForceTest" -> False};
 validatePackings[pattern_String, opts : OptionsPattern[]] := 
  Module[{files, basenames, validators, exaArg, validfiles, validator},
   files = FileNames[pattern];
@@ -40,7 +41,7 @@ validatePackings[pattern_String, opts : OptionsPattern[]] :=
    ]
   ];
 ResourceFunction["AddCodeCompletion"]["validatePackings"][
-  "RelativeFileName", {"exaForceTest"}];
+  "RelativeFileName", RepeatOptions[validatePackings]];
 validatePackings::Pattern = "No valid files found matching \"`1`\".";
 
 
@@ -69,6 +70,7 @@ gosValidate[filename_, OptionsPattern[]] := Module[{d, n, Phi, pass},
    pass = False];
   If[pass, passMessage[filename]]
   ]
+ResourceFunction["AddCodeCompletion"]["gosValidate"]["RelativeFileName"];
 
 (* .tp files *)
 (* Validates a .tp ETF given its file name *)
@@ -106,6 +108,8 @@ tpValidate[filename_, OptionsPattern[]] :=
    pass = False];
   If[pass, passMessage[filename <> " "]]
   ]
+ResourceFunction["AddCodeCompletion"]["tpValidate"][
+  "RelativeFileName", RepeatOptions[tpValidate]];
 
 (* .exa files *)
 (* Validates a .exa ETF given its file name *)
@@ -115,7 +119,7 @@ tpValidate[filename_, OptionsPattern[]] :=
 (* If corresponding .tp file exists, then all checks are skipped (unless the
    option "exaForceTest" is set to True) as tpValidate compares with the
    existing .tp file *)
-Options[exaValidate] = {Options[validatePackings], "exaForceTest" -> False};
+Options[exaValidate] = Options[validatePackings];
 exaValidate[filename_, OptionsPattern[]] :=
  Module[{wprec, TP1, TP2, d, n, GM, pass},
   If[FileExistsQ[replaceExt[filename, "tp"] && ! OptionValue["exaForceTest"]],
@@ -150,6 +154,8 @@ exaValidate[filename_, OptionsPattern[]] :=
    pass = False];
   If[pass, passMessage[filename]]
   ]
+ResourceFunction["AddCodeCompletion"]["exaValidate"][
+  "RelativeFileName", RepeatOptions[exaValidate]];
 
 failMessage[message_] := Print[Style[message, Red]]
 contentsMessage[filename_] := failMessage[filename <> ": File contents do not match file extension"]

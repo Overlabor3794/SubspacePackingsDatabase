@@ -28,23 +28,28 @@ rand[d_, n_] := RandomReal[NormalDistribution[], {d, n}] +
 
 (* minimize p-frame potential with QuasiNewton *)
 (* vector list, p, options *)
+Options[MinPhiQNp] = {Method -> "QuasiNewton", MaxIterations -> 1000};
+Options[MinPhiQNp] = Join[Options[MinPhiQNp], Options[FindMinimum]];
 MinPhiQNp[Phi0_, p_, opts : OptionsPattern[]] := Module[{d, n, min},
   {d, n} = Dimensions[Phi0];
-  min = FindMinimum[pFramePotential[PhiVar[d, n], p], varcons[Phi0],
-    opts, Method -> "QuasiNewton", MaxIterations -> 1000, 
-    WorkingPrecision -> MachinePrecision];
-  {min[[1]], normalizeSO[PhiVar[d, n] /. min[[2]]]}
+  min = FindMinimum[pFramePotential[PhiVar[d, n], p], varcons[Phi0], opts];
+  min[[2]] = normalizeSO[PhiVar[d, n] /. min[[2]]];
+  min
   ]
+ResourceFunction["AddCodeCompletion"]["MinPhiQNp"][
+  None, None, RepeatOptions[MinPhiQNp]];
 
 (* minimize coherence with PrincipalAxis [OFTEN FAILS] *)
 (* vector list, options *)
+Options[MinPhiPA] = {Method -> "PrincipalAxis"};
+Options[MinPhiPA] = Join[Options[MinPhiPA], Options[FindMinimum]];
 MinPhiPA[Phi0_, opts : OptionsPattern[]] := Module[{d, n, min},
   {d, n} = Dimensions[Phi0];
-  min = FindMinimum[Coherence[PhiVar[d, n]], varcons[Phi0],
-    opts, Method -> "PrincipalAxis", MaxIterations -> Automatic, 
-    WorkingPrecision -> MachinePrecision];
-  {min[[1]], normalizeSO[PhiVar[d, n] /. min[[2]]]}
+  min = FindMinimum[Coherence[PhiVar[d, n]], varcons[Phi0], opts];
+  min[[2]] = normalizeSO[PhiVar[d, n] /. min[[2]]];
+  min
   ]
+ResourceFunction["AddCodeCompletion"]["MinPhiPA"][None, RepeatOptions[MinPhiPA]];
 
 (* ETF conditions *)
 tightnessIdealGenerators[d_, n_] := Flatten[Table[
@@ -63,10 +68,10 @@ unitNormIdealGenerators[d_, n_] :=
    equations an ETF satisfies. They currently do not work very well. You should
    use MinPhiQNp with p=4 instead [or figure out how to improve this]. *)
 Options[etfRefine] = {WorkingPrecision -> MachinePrecision, 
-   TightnessIdealGenerators -> False};
+   "TightnessIdealGenerators" -> False};
 etfRefine[Phi0_, OptionsPattern[]] := Module[{d, n, idealGenerators, TID},
   {d, n} = Dimensions[Phi0];
-  TID = If[OptionValue[TightnessIdealGenerators], 
+  TID = If[OptionValue["TightnessIdealGenerators"],
     tightnessIdealGenerators[d, n],
     {}];
   idealGenerators = Join[unitNormIdealGenerators[d, n],
@@ -75,3 +80,5 @@ etfRefine[Phi0_, OptionsPattern[]] := Module[{d, n, idealGenerators, TID},
      RandomInteger[10, {Length[idealGenerators], 2 d n}], varcons[Phi0],
     WorkingPrecision -> OptionValue[WorkingPrecision]]
   ]
+ResourceFunction["AddCodeCompletion"]["etfRefine"][
+  None, RepeatOptions[etfRefine]];

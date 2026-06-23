@@ -14,9 +14,9 @@
    to higher precision and then apply RootApproximant again *)
 (* Increase the precision by a factor of "RefinementFactor" when using
    "NumericalRefinement" *)
-Options[exactifyTuple] = {RationalCoefficients -> False, 
-   SimplificationMethod -> RootReduce, NumericalRefinement -> False, 
-   RefinementFactor -> 10};
+Options[exactifyTuple] = {"RationalCoefficients" -> False,
+   "SimplificationMethod" -> RootReduce, "NumericalRefinement" -> False,
+   "RefinementFactor" -> 10};
 exactifyTuple[\[Alpha]_, OptionsPattern[]] :=
  Module[{SM, RF, deg, ESP, X, f, roots},
   SM = OptionValue["SimplificationMethod"];
@@ -33,19 +33,19 @@ exactifyTuple[\[Alpha]_, OptionsPattern[]] :=
     roots = SM[Root[f, #] & /@ Range[deg]]];
   First /@ Nearest[roots, \[Alpha]]
   ]
+ResourceFunction["AddCodeCompletion"]["exactifyTuple"][
+  None, RepeatOptions[exactifyTuple]];
 
 (* Exactify a lookup table of triple products, taking advantage of possible
    Galois conjugates *)
-Options[exactifyLUT] = {RationalCoefficients -> False, 
-   SimplificationMethod -> RootReduce, NumericalRefinement -> False, 
-   RefinementFactor -> 10};
+Options[exactifyLUT] = Options[exactifyTuple];
 exactifyLUT[LUT_, opts : OptionsPattern[]] :=
  {exactifyTuple[LUT[[1]], opts], LUT[[2]]}
+ResourceFunction["AddCodeCompletion"]["exactifyLUT"][
+  None, RepeatOptions[exactifyLUT]];
 
 (* Exactify a triple product tensor, taking advantage of possible Galois conjugates *)
-Options[exactifyTP] = {WorkingPrecision -> Automatic,
-   RationalCoefficients -> False, SimplificationMethod -> RootReduce,
-   NumericalRefinement -> False, RefinementFactor -> 10};
+Options[exactifyTP] = Join[Options[arraytoLUT], Options[exactifyLUT]];
 exactifyTP[TP_, opts : OptionsPattern[]] := Module[{fopts, tmp},
   fopts = FilterRules[{opts}, Options[arraytoLUT]];
   tmp = arraytoLUT[TP, fopts];
@@ -53,6 +53,8 @@ exactifyTP[TP_, opts : OptionsPattern[]] := Module[{fopts, tmp},
   tmp = exactifyLUT[tmp, fopts];
   arrayfromLUT[tmp]
   ]
+ResourceFunction["AddCodeCompletion"]["exactifyTP"][
+  None, RepeatOptions[exactifyTP]];
 
 (* Exactify a lookup table of triple products naively using RootApproximant *)
 Options[exactifyLUTalt] = {Parallelize -> False};
@@ -68,6 +70,8 @@ exactifyLUTalt[LUT_, OptionsPattern[]] := Module[{distinct},
   distinct = First /@ Nearest[distinct, LUT[[1]]];
   {distinct, LUT[[2]]}
   ]
+ResourceFunction["AddCodeCompletion"]["exactifyLUTalt"][
+  None, RepeatOptions[exactifyLUTalt]];
 
 (* Exactify a triple product tensor naively using RootApproximant *)
 Options[exactifyTPalt] = Join[Options[arraytoLUT], Options[exactifyLUTalt]];
@@ -78,3 +82,5 @@ exactifyTPalt[TP_, opts : OptionsPattern[]] := Module[{fopts, tmp},
   tmp = exactifyLUTalt[tmp, fopts];
   arrayfromLUT[tmp]
   ]
+ResourceFunction["AddCodeCompletion"]["exactifyTPalt"][
+  None, RepeatOptions[exactifyTPalt]];

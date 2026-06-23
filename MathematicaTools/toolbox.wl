@@ -1,5 +1,13 @@
 (* ::Package:: *)
 
+(* Used with resource function "AddCodeCompletion" to add completion for
+   optional arguments *)
+RepeatOptions[fn_, extra_ : 0] := Module[{k, opts},
+  opts = DeleteDuplicates[First /@ Options[fn]];
+  k = Length[opts] + extra;
+  Sequence @@ ConstantArray[ToString /@ opts, k]
+  ]
+
 (* Custom version of SetPrecision with optional argument for guard digits *)
 setPrecision[expr_, prec_, guard_ : 0] :=
  If[NumericQ[prec],
@@ -76,6 +84,8 @@ pFramePotential[Phi_, p_, opts : OptionsPattern[]] := Module[{V, CS},
   V = Normalize /@ ConjugateTranspose[Phi];
   2 Total[Abs[UpperTriangularize[V . V\[ConjugateTranspose], 1]]^p, 2, opts, Method -> CS]
   ]
+ResourceFunction["AddCodeCompletion"]["pFramePotential"][
+  None, None, RepeatOptions[pFramePotential]];
 
 (* Welch bound [lower bound on the coherence], acheived if and only if Phi is an
    equiangular tight frame *)

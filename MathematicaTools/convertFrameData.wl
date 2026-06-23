@@ -44,6 +44,8 @@ SOfromGM[G_, r_ : Automatic, OptionsPattern[]] :=
    {U, \[CapitalLambda], V} = SingularValueDecomposition[G, UpTo[d]];
    (U . Sqrt[\[CapitalLambda]])\[ConjugateTranspose]
   ] /; IntegerQ[r] || r === Automatic
+ResourceFunction["AddCodeCompletion"]["SOfromGM"][
+  None, RepeatOptions[SOfromGM, 1]];
 
 (* Gram matrix from triple product slice *)
 GMfromTPslice[TPS_, i_ : Automatic] := Module[{j, const},
@@ -65,12 +67,15 @@ GMfromTP[TP_, OptionsPattern[]] := Module[{n, j},
   j = j[[1]];
   GMfromTPslice[TP[[j]], j]
   ]
+ResourceFunction["AddCodeCompletion"]["GMfromTP"][None, RepeatOptions[GMfromTP]];
 
 (* Vector list from triple product tensor *)
 (* currently implemented when SO has a vector not orthogonal to any other vector *)
 Options[SOfromTP] = Options[SOfromGM];
 SOfromTP[TP_, r_Integer : Automatic, opts : OptionsPattern[]] :=
  SOfromGM[GMfromTP[TP], r, opts]
+ResourceFunction["AddCodeCompletion"]["SOfromTP"][
+  None, RepeatOptions[SOfromTP, 1]];
 
 (* Faithful matrix plot for synthesis operator or Gram matrix *)
 FrameVisualize[M_] := MatrixPlot[
@@ -130,6 +135,8 @@ arraytoLUT[array_, OptionsPattern[]] :=
   distinct = Extract[array, positions];
   {distinct, LUT}
   ]
+ResourceFunction["AddCodeCompletion"]["arraytoLUT"][
+  None, RepeatOptions[arraytoLUT]];
 
 (* Converts a lookup table to an array *)
 arrayfromLUT[LUT_] := 

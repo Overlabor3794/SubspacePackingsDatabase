@@ -23,8 +23,8 @@ importPacking[filename_String, fmt_String : Automatic, d_Integer : Automatic,
     True, Message[importPacking::FileName, filename]; Return[$Failed]
     ]
    ]
-ResourceFunction["AddCodeCompletion"]["importPacking"][
-  "RelativeFileName", {"TP", "TP slice", "Lookup table"}];
+ResourceFunction["AddCodeCompletion"]["importPacking"]["RelativeFileName",
+  {"TP", "TP slice", "Lookup table"}, RepeatOptions[importPacking, 2]];
 importPacking::nffil = "File `1` not found during import";
 importPacking::FileName = 
   "`1` is an invalid file name; *.txt, *.gos, *.tp, or *.exa expected";
@@ -42,6 +42,8 @@ gosImport[filename_, d_, n_, OptionsPattern[]] := Module[{gprec, plist, dd, nn},
    {dd, nn} = {d, n}];
   SOfromGoS[plist, {dd, nn}]
   ]
+ResourceFunction["AddCodeCompletion"]["gosImport"][
+  "RelativeFileName", None, None, RepeatOptions[gosImport]];
 
 (* Internal function to import .tp files *)
 Options[tpImport] = Options[importPacking];
@@ -58,6 +60,8 @@ tpImport[filename_, fmt_, OptionsPattern[]] := Module[{gprec, LUT, lcfmt},
    True, Message[importPacking::fmt, fmt]; Return[$Failed]
    ]
   ]
+ResourceFunction["AddCodeCompletion"]["tpImport"]["RelativeFileName",
+  {"TP", "TP slice", "Lookup table"}, RepeatOptions[tpImport]];
 
 (* Internal function to import .exa files *)
 Options[exaImport] = Options[importPacking];
@@ -78,6 +82,8 @@ exaImport[filename_, fmt_, OptionsPattern[]] := Module[{gprec, LUT, lcfmt},
    True, Message[importPacking::fmt, fmt]; Return[$Failed]
    ]
   ]
+ResourceFunction["AddCodeCompletion"]["exaImport"]["RelativeFileName",
+  {"TP", "TP slice", "Lookup table"}, RepeatOptions[exaImport]];
 
 (* Function to export Packings *)
 (* Works with .gos, .tp, and .exa file types *)
@@ -89,6 +95,7 @@ exaImport[filename_, fmt_, OptionsPattern[]] := Module[{gprec, LUT, lcfmt},
    function performs checks between the structure of the array and the file name
    and warns with a prompt if a mismatch is detected *)
 (* The available option is PrecisionGoal and is only relevant to .gos files *)
+Options[exportPacking] = {PrecisionGoal -> MachinePrecision};
 exportPacking[array_, filename_, opts : OptionsPattern[]] := Module[{cont, type},
   If[$exportPackingChecks && FileExistsQ[filename],
    cont = ChoiceDialog[filename <> " already exists.\nDo you want to replace it?",
@@ -104,7 +111,8 @@ exportPacking[array_, filename_, opts : OptionsPattern[]] := Module[{cont, type}
    True, Message[exportPacking::structure]; Return[$Failed]
    ]
   ]
-ResourceFunction["AddCodeCompletion"]["exportPacking"][None, "RelativeFileName"];
+ResourceFunction["AddCodeCompletion"]["exportPacking"][
+  None, "RelativeFileName", RepeatOptions[exportPacking]];
 exportPacking::structure = "The structure of the first argument is inconsistent \
 with the supported file types";
 
@@ -120,7 +128,7 @@ in " <> FileNameTake[filename] <> ".\nDo you want to continue \
 exporting?", {"Yes" -> True, "No" -> False}];
 
 (* Internal function to export .gos files *)
-Options[gosExport] = {PrecisionGoal -> MachinePrecision};
+Options[gosExport] = Options[exportPacking];
 gosExport[Phi_, filename_, OptionsPattern[]] := Module[{prec},
   If[$exportPackingChecks,
    If[Dimensions[Phi] != extractDimensions[filename],
@@ -136,6 +144,8 @@ gosExport[Phi_, filename_, OptionsPattern[]] := Module[{prec},
   prec = OptionValue[PrecisionGoal];
   Export[filename, N[GoSfromSO[Phi], prec], "List"]
   ]
+ResourceFunction["AddCodeCompletion"]["gosExport"][
+  None, "RelativeFileName", RepeatOptions[gosExport]];
 
 (* Internal function to export .tp files *)
 tpExport[TP_, filename_] := Module[{d, n, distinct, array},
@@ -153,7 +163,7 @@ tpExport[TP_, filename_] := Module[{d, n, distinct, array},
   If[$exportPackingChecks && Length[distinct] != extractNumberTP[filename],
    If[! numberTPDialong[filename], Return[$Failed]];
    ];
-  array = ExportString[array, "JSON", Compact -> True];
+  array = ExportString[array, "JSON", "Compact" -> True];
   Export[filename, {distinct, array}, "List"]
   ]
 
@@ -170,7 +180,7 @@ exaExport[TPS_, filename_] := Module[{d, n, distinct, array},
     ];
    ];
   {distinct, array} = arraytoLUT[TPS];
-  array = ExportString[array, "JSON", Compact -> True];
+  array = ExportString[array, "JSON", "Compact" -> True];
   Export[filename, {distinct, array}, "List"]
   ]
 
@@ -199,6 +209,6 @@ lutExport[LUT_, filename_] := Module[{distinct, array, dim, ext, d, n, \[Alpha]}
     If[! dimDialong[filename], Return[$Failed]];
     ];
    ];
-  array = ExportString[array, "JSON", Compact -> True];
+  array = ExportString[array, "JSON", "Compact" -> True];
   Export[filename, {distinct, array}, "List"]
   ]

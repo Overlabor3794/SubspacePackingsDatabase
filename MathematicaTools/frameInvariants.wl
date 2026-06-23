@@ -12,7 +12,7 @@
    WorkingPrecision: Determines the number of signifcant digits used for
      comparing triple products
    PackArray: Determines whether the triple product tensor is to be packed *)
-Options[distinctTP] = {WorkingPrecision -> Automatic, PackArray -> Automatic};
+Options[distinctTP] = {WorkingPrecision -> Automatic, "PackArray" -> Automatic};
 distinctTP[array_, OptionsPattern[]] := 
  Module[{type, TP, nTP, aprec, wprec, pack, dims, positions, base},
   type = arrayType[array];
@@ -28,7 +28,7 @@ distinctTP[array_, OptionsPattern[]] :=
    ];
   aprec = Precision[array];
   wprec = OptionValue[WorkingPrecision];
-  pack = OptionValue[PackArray];
+  pack = OptionValue["PackArray"];
   Which[
    wprec === pack === Automatic,
    If[aprec >= MachinePrecision + 5,
@@ -55,12 +55,17 @@ distinctTP[array_, OptionsPattern[]] :=
   positions = Mod[Quotient[# - 1, base], dims] & /@ positions + 1;
   Extract[TP, positions]
   ]
+ResourceFunction["AddCodeCompletion"]["distinctTP"][
+  None, RepeatOptions[distinctTP]];
 
 (* Number of distict triple products, including degenerate ones *)
+Options[numberTP] = Options[distinctTP];
 numberTP[array_, opts : OptionsPattern[]] := Length@distinctTP[array, opts]
+ResourceFunction["AddCodeCompletion"]["numberTP"][None, RepeatOptions[numberTP]];
 
 (* Core code of moment and momentnd *)
-Options[momentCore] = {PrecisionGoal -> Automatic, Method -> Automatic, ND -> False};
+Options[momentCore] = {PrecisionGoal -> Automatic, Method -> Automatic,
+   "ND" -> False};
 momentCore[array_, m_, OptionsPattern[]] := Module[{gprec, wprec, type, Tm, CS},
   gprec = OptionValue[PrecisionGoal];
   If[gprec === Automatic, gprec = Precision[array]];
@@ -88,25 +93,33 @@ momentCore[array_, m_, OptionsPattern[]] := Module[{gprec, wprec, type, Tm, CS},
     CS = Automatic
     ]
    ];
-  If[OptionValue[ND],
+  If[OptionValue["ND"],
    Do[Tm[[i, i, All]] = Tm[[i, All, i]] = Tm[[All, i, i]] = 0, {i, Length[Tm]}]
    ];
   N[Total[Tm, 3, Method -> CS], gprec]
   ]
+ResourceFunction["AddCodeCompletion"]["momentCore"][
+  None, None, RepeatOptions[momentCore]];
 
 (* Moments [sum of powers of triple products] *)
 (* Passing the option Method -> "CompensatedSummation" uses "CompensatedSummation"
    method with Total. "CompensatedSummation" is always used if array has precision
    equal to MachinePrecision *)
-moment[array_, m_, opts : OptionsPattern[]] := 
- momentCore[array, m, opts, ND -> False]
+Options[moment] = {PrecisionGoal -> Automatic, Method -> Automatic};
+moment[array_, m_, opts : OptionsPattern[]] :=
+ momentCore[array, m, opts, "ND" -> False]
+ResourceFunction["AddCodeCompletion"]["moment"][
+  None, None, RepeatOptions[moment]];
 
 (* Nondiagonal moments [sum of powers of totally nondiagonal triple products] *)
 (* Passing the option Method -> "CompensatedSummation" uses "CompensatedSummation"
    method with Total. "CompensatedSummation" is always used if array has precision
    equal to MachinePrecision *)
-momentnd[array_, m_, opts : OptionsPattern[]] := 
- momentCore[array, m, opts, ND -> True]
+Options[momentnd] = Options[moment];
+momentnd[array_, m_, opts : OptionsPattern[]] :=
+ momentCore[array, m, opts, "ND" -> True]
+ResourceFunction["AddCodeCompletion"]["momentnd"][
+  None, None, RepeatOptions[momentnd]];
 
 (* Compute a general m-product with index set Indices_ *)
 mproductfromGM[G_, Indices_] := Module[{m, wrapIndices},
