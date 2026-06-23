@@ -73,8 +73,8 @@ SOfromTP[TP_, r_Integer : Automatic, opts : OptionsPattern[]] :=
  SOfromGM[GMfromTP[TP], r, opts]
 
 (* Faithful matrix plot for synthesis operator or Gram matrix *)
-FrameVisualize[M_] :=
- MatrixPlot[Hue[(Arg[#] + Pi)/(2 Pi), Abs[#]] & /@ # & /@ M, Frame -> False]
+FrameVisualize[M_] := MatrixPlot[
+    MapThread[Hue, {(Arg[M] + Pi)/(2 Pi), Abs[M]}, 2], Frame -> False]
 
 (* Game of Sloanes representation of a synthesis operator *)
 GoSfromSO[Phi_] := Join[Re[#], Im[#]] &@ Flatten[Phi\[Transpose]]
