@@ -2,21 +2,45 @@
 
 (* Functions by Gene Kopp for weak and probabalistic equivalence of frames *)
 
-(* Tests "moment equivalence" of Phi1_ and Phi2_ up to threshold, that is, whether the first few moments are equal *)
-(* At threshold_ = n^3, moment equivalence is the same as equivalence of the set of triple products as multisets *)
+(* Tests "moment equivalence" of Phi1_ and Phi2_ up to threshold, that is, whether
+   the first few moments are equal *)
+(* At threshold_ = n^3, moment equivalence is the same as equivalence of the set
+   of triple products as multisets *)
 (* This is strictly weaker than projective permutation unitary equivalence *)
-dirtyFrameEquiv[Phi1_,Phi2_,threshold_:10,tolerance_:10^(-6)]:=Module[{moments1,moments2},
-moments1=Table[moment[Phi1,m],{m,1,threshold}];
-moments2=Table[moment[Phi2,m],{m,1,threshold}];
-Norm[moments1-moments2]<tolerance
-]
+Options[dirtyFrameEquiv] = {Threshold -> 10, Tolerance -> 10^(-6)};
+dirtyFrameEquiv[Phi1_, Phi2_, OptionsPattern[]] :=
+ Module[{thres, tol, moments1, moments2},
+  thres = OptionValue[Threshold];
+  tol = OptionValue[Tolerance];
+  moments1 = Table[moment[Phi1, m], {m, 1, thres}];
+  moments2 = Table[moment[Phi2, m], {m, 1, thres}];
+  Norm[moments1 - moments2] < tol
+  ]
+ResourceFunction["AddCodeCompletion"]["dirtyFrameEquiv"][
+  None, None, RepeatOptions[dirtyFrameEquiv]];
 
-(* Tests equivalence of tests_ random basic S_n invariants of degree degree_ on an index set of size breadth_ *)
-(* For sufficiently many tests in sufficiently large degree, this is equivalent to projective permutation unitary equivalence by Hilbert's basis theorem *)
-(* However, rigorous bounds are not known here *) 
-randomInvariantFrameEquiv[Phi1_,Phi2_,breadth_:3,degree_:12,tests_:10,tolerance_:10^(-6)]:=And@@ParallelTable[
-Abs[generalSnInvariantfromSO[Phi1,#]-generalSnInvariantfromSO[Phi2,#]]&[RandomInteger[{1,breadth},degree]]<tolerance,{j,1,tests}
-]
+(* Tests equivalence of tests_ random basic S_n invariants of degree degree_ on
+   an index set of size breadth_ *)
+(* For sufficiently many tests in sufficiently large degree, this is equivalent
+   to projective permutation unitary equivalence by Hilbert's basis theorem *)
+(* However, rigorous bounds are not known here *)
+Options[randomInvariantFrameEquiv] = {"Breadth" -> 3, Degree -> 12,
+   "Tests" -> 10, Tolerance -> 10^(-6), Parallelize -> True};
+randomInvariantFrameEquiv[Phi1_, Phi2_, OptionsPattern[]] :=
+ Module[{brdth, deg, tests, tol, table},
+  brdth = OptionValue["Breadth"];
+  deg = OptionValue[Degree];
+  tests = OptionValue["Tests"];
+  tol = OptionValue[Tolerance];
+  If[OptionValue[Parallelize], table = ParallelTable, table = Table];
+  table = table[
+   Abs[generalSnInvariantfromSO[Phi1, #] - generalSnInvariantfromSO[Phi2, #]] &
+     [RandomInteger[{1, brdth}, deg]] < tol, {j, 1, tests}
+   ];
+  And @@ table
+  ]
+ResourceFunction["AddCodeCompletion"]["randomInvariantFrameEquiv"][
+  None, None, RepeatOptions[randomInvariantFrameEquiv]];
 
 
 (* Functions by David Agbolade for fully testing equivalence of ETFs *)
