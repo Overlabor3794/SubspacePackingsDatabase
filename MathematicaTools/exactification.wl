@@ -6,9 +6,6 @@
 (* Includes exactification of triple products *)
 
 
-(* Position of the minimum element of a list of distinct real numbers *)
-positionSmallest[l_] := FirstPosition[l, Min[l]][[1]]
-
 (* Exactification using elementary symmetric polynomials and RootApproximant *)
 (* If "RationalCoefficients" is set to True, instead use Rationalize on coefficeints *)
 (* "SimplificationMethod" is the function used to simplfy the algebraic numbers
