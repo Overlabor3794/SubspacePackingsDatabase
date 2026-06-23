@@ -79,7 +79,7 @@ arraytoLUT[array_, OptionsPattern[]] :=
 arrayfromLUT[LUT_] := 
  LUT[[2]] /. AssociationThread[Range[0, Length[LUT[[1]]] - 1] -> LUT[[1]]]
 
-(* Exactify a position map of triple products, taking advantage of possible
+(* Exactify a lookup table of triple products, taking advantage of possible
    Galois conjugates *)
 Options[exactifyLUT] = {RationalCoefficients -> False, 
    SimplificationMethod -> RootReduce, NumericalRefinement -> False, 
@@ -99,10 +99,27 @@ exactifyTP[TP_, opts : OptionsPattern[]] := Module[{fopts, tmp},
   arrayfromLUT[tmp]
   ]
 
-(* Exactify a position map of triple products naively using RootApproximant *)
-exactifyLUTalt[LUT_] := {RootApproximant /@ LUT[[1]], LUT[[2]]}
+(* Exactify a lookup table of triple products naively using RootApproximant *)
+Options[exactifyLUTalt] = {Parallelize -> False};
+exactifyLUTalt[LUT_, OptionsPattern[]] := Module[{distinct},
+  distinct = Select[LUT[[1]], Im[#] >= 0 &];
+  If[OptionValue[Parallelize],
+   SetSharedVariable[distinct];
+   ParallelDo[distinct[[i]] = RootApproximant[distinct[[i]]],
+     {i, Length[distinct]}, Method -> "FinestGrained"],
+   distinct = RootApproximant[distinct];
+   ];
+  distinct = DeleteDuplicates@Join[distinct, Conjugate[distinct]];
+  distinct = First /@ Nearest[distinct, LUT[[1]]];
+  {distinct, LUT[[2]]}
+  ]
 
 (* Exactify a triple product tensor naively using RootApproximant *)
-Options[exactifyTPalt] = {WorkingPrecision -> Automatic};
-exactifyTPalt[TP_, opts : OptionsPattern[]] := 
- arrayfromLUT@exactifyLUTalt@arraytoLUT[TP, opts]
+Options[exactifyTPalt] = Join[Options[arraytoLUT], Options[exactifyLUTalt]];
+exactifyTPalt[TP_, opts : OptionsPattern[]] := Module[{fopts, tmp},
+  fopts = FilterRules[{opts}, Options[arraytoLUT]];
+  tmp = arraytoLUT[TP, fopts];
+  fopts = FilterRules[{opts}, Options[exactifyLUTalt]];
+  tmp = exactifyLUTalt[tmp, fopts];
+  arrayfromLUT[tmp]
+  ]
