@@ -35,22 +35,9 @@ ResourceFunction["AddCodeCompletion"]["InitMat"][
 Options[troppAltProj] = {WorkingPrecision -> Automatic,
    PrecisionGoal -> Automatic, MaxIterations -> 30000,
    UpdateInterval -> Infinity};
-
-(* With random initial seed *)
-troppAltProj[d_, n_, \[Mu]_, opts : OptionsPattern[]] := Module[{wprec, gprec, X},
-  wprec = OptionValue[WorkingPrecision];
-  gprec = OptionValue[PrecisionGoal];
-  If[wprec === Automatic,
-   If[gprec === MachinePrecision, wprec = MachinePrecision, wprec = 2*gprec]
-   ];
-  X = InitMat[d, n, WorkingPrecision -> wprec];
-  troppAltProj[d, n, \[Mu], X, opts]
-  ]
-
-(* With initial seed given as argument Y *)
-troppAltProj[d_, n_, \[Mu]_, X_?MatrixQ, opts : OptionsPattern[]] :=
- Block[{wprec, gprec, $MinPrecision, $MaxPrecision, bound, G, const, interval,
-  error, T, \[Lambda], V, first, s, D, U},
+troppAltProj[d_, n_, \[Mu]_, Y_ : Automatic, opts : OptionsPattern[]] :=
+ Block[{wprec, gprec, X, bound, G, error, dwprec, $MinPrecision, $MaxPrecision,
+  const, interval, T, \[Lambda], V, first, s, D, U},
   wprec = OptionValue[WorkingPrecision];
   gprec = OptionValue[PrecisionGoal];
   Which[
@@ -61,14 +48,20 @@ troppAltProj[d_, n_, \[Mu]_, X_?MatrixQ, opts : OptionsPattern[]] :=
    wprec =!= Automatic && gprec === Automatic,
    If[wprec === MachinePrecision, gprec = MachinePrecision, gprec = wprec/2]
    ];
-  $MinPrecision = $MaxPrecision = wprec;
+  If[Y === Automatic, X = InitMat[d, n, WorkingPrecision -> wprec], X = Y];
   bound = 5*10^(-gprec);
   G = SetPrecision[X\[ConjugateTranspose] . X, wprec];
+  error = Abs[Max@Abs@UpperTriangularize[G, 1] - \[Mu]]/\[Mu];
+  dwprec := If[wprec === MachinePrecision,
+   wprec, Min[-2*Log[10, error] + 10,
+   wprec]];
+  $MinPrecision = 0; $MaxPrecision = Infinity;
+  $MinPrecision = $MaxPrecision = dwprec;
+  G = SetPrecision[G, dwprec];
   const = ConstantArray[0, Dimensions[G]];
   interval = OptionValue[UpdateInterval];
   If[interval != Infinity,
    Print[CurrentDate[], " - Starting loop"]];
-  error = Abs[Max@Abs@UpperTriangularize[G, 1] - \[Mu]]/\[Mu];
   T = OptionValue[MaxIterations];
   Do[
    G = G*\[Mu]/Clip[Abs[G], {\[Mu], Infinity}];
@@ -90,10 +83,14 @@ troppAltProj[d_, n_, \[Mu]_, X_?MatrixQ, opts : OptionsPattern[]] :=
    If[Divisible[t, 100],
     error = Abs[Max@Abs@UpperTriangularize[G, 1] - \[Mu]]/\[Mu];
     If[error < bound, Break[]];
+    $MinPrecision = 0; $MaxPrecision = Infinity;
+    G = SetPrecision[G, dwprec];
+    $MinPrecision = $MaxPrecision = dwprec;
     ];
    If[Divisible[t, interval],
-    Print[CurrentDate[], " - Iteration ", t,
-        " - Current precision = ", -N@Log[10, error]]
+    Print[Now, " - Iteration ", t,
+               " - Precision of G = ", Precision[G],
+               " - Effective precision = ", -N@Log[10, error]]
     ],
    {t, T}];
   D = DiagonalMatrix@Diagonal[G];
@@ -101,6 +98,6 @@ troppAltProj[d_, n_, \[Mu]_, X_?MatrixQ, opts : OptionsPattern[]] :=
   G = (G + G\[ConjugateTranspose])/2;
   {U, D, V} = SingularValueDecomposition[G, UpTo[d]];
   (U . Sqrt[D])\[ConjugateTranspose]
-  ]
+  ] /; MatrixQ[Y]
 ResourceFunction["AddCodeCompletion"]["troppAltProj"][
   None, None, None, RepeatOptions[troppAltProj, 1]];
