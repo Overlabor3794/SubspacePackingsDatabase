@@ -35,7 +35,6 @@ TPfromSO[Phi_] := TPfromGM[GMfromSO[Phi]]
 
 (* Vector list from Gram matrix *)
 Options[SOfromGM] = {Tolerance -> 10^(-6)};
-Clear[SOfromGM, SOfromTP];
 SOfromGM[G_, r_ : Automatic, OptionsPattern[]] :=
  Module[{d, U, \[CapitalLambda], V},
   d = r;

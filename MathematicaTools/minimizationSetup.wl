@@ -20,11 +20,14 @@ varcons[Phi0_] := Module[{d, n},
   ]
 
 (* random seed vector list *)
-rand[] := RandomReal[NormalDistribution[], {d, n}] +
-    RandomReal[NormalDistribution[], {d, n}] I
-
-rand[d_, n_] := RandomReal[NormalDistribution[], {d, n}] +
-    RandomReal[NormalDistribution[], {d, n}] I
+Options[rand] = Options[RandomReal];
+rand[opts : OptionsPattern[]] :=
+ RandomReal[NormalDistribution[], {d, n}, opts] +
+  RandomReal[NormalDistribution[], {d, n}, opts] I
+rand[d_, n_, opts : OptionsPattern[]] :=
+ RandomReal[NormalDistribution[], {d, n}, opts] +
+  RandomReal[NormalDistribution[], {d, n}, opts] I
+ResourceFunction["AddCodeCompletion"]["rand"][RepeatOptions[rand, 2]];
 
 (* minimize p-frame potential with QuasiNewton *)
 (* vector list, p, options *)
