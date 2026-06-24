@@ -6,95 +6,101 @@
 
 (* Initial seed *)
 Options[InitMat] = {WorkingPrecision -> MachinePrecision};
-InitMat[d_, n_, opts : OptionsPattern[]] := 
- Module[{\[Tau], T, done, X, t, x, cor, prec},
-  prec = OptionValue[WorkingPrecision];
+InitMat[d_, n_, opts : OptionsPattern[]] := Module[{\[Tau], T, X, t, x, cor},
   \[Tau] = 0.9;
   T = 10000;
-  done = 0;
-  While[done == 0,
-   X = RandomReal[NormalDistribution[], d, WorkingPrecision -> prec] + 
-     I RandomReal[NormalDistribution[], d, WorkingPrecision -> prec];
-   X = List /@ Normalize[X];
+  While[True,
+   X = rand[d, 1, opts];
+   X = X / Norm[X];
    t = 0;
    While[t < T,
-    x = RandomReal[NormalDistribution[], d, WorkingPrecision -> prec] + 
-      I RandomReal[NormalDistribution[], d, WorkingPrecision -> prec];
+    x = Flatten@rand[1, d];
     x = Normalize[x];
     cor = Max@Abs[X\[ConjugateTranspose] . x];
     If[cor < \[Tau],
      X = MapThread[Append, {X, x}];
      t = 0;
-     If[Dimensions[X][[2]] == n, t = T];,
+     If[Dimensions[X][[2]] == n, t = T],
      t++;
      ]
     ];
-   If[Dimensions[X][[2]] == n, done = 1];
+   If[Dimensions[X][[2]] == n, Break[]];
    ];
   X
   ]
+ResourceFunction["AddCodeCompletion"]["InitMat"][
+  None, None, RepeatOptions[InitMat]];
 
 (* Alternating projections *)
-Options[troppAltProj] = {InitialPrecision -> MachinePrecision, 
-   Iterations -> 30000, UpdateInterval -> Infinity};
+Options[troppAltProj] = {WorkingPrecision -> Automatic,
+   PrecisionGoal -> Automatic, MaxIterations -> 30000,
+   UpdateInterval -> Infinity};
+
 (* With random initial seed *)
-troppAltProj[d_, n_, \[Mu]_, opts : OptionsPattern[]] := Module[{X},
-  X = InitMat[d, n, WorkingPrecision -> OptionValue[InitialPrecision]];
+troppAltProj[d_, n_, \[Mu]_, opts : OptionsPattern[]] := Module[{wprec, gprec, X},
+  wprec = OptionValue[WorkingPrecision];
+  gprec = OptionValue[PrecisionGoal];
+  If[wprec === Automatic,
+   If[gprec === MachinePrecision, wprec = MachinePrecision, wprec = 2*gprec]
+   ];
+  X = InitMat[d, n, WorkingPrecision -> wprec];
   troppAltProj[d, n, \[Mu], X, opts]
   ]
+
 (* With initial seed given as argument Y *)
-troppAltProj[d_, n_, \[Mu]_, Y_?MatrixQ, opts : OptionsPattern[]] := 
- Module[
-  {X, prec, G, T, t, i, j, dd, V, ind, Vs, first, sumfirst, k, 
-   gammapart, D, newD, F, U, lastprec, currentprec},
-  X = Y;
-  G = X\[ConjugateTranspose] . X;
-  T = OptionValue[Iterations];
-  If[OptionValue[UpdateInterval] != Infinity,
-   lastprec = Precision[X];
-   currentprec = Precision[G];
-   Print[CurrentDate[], " - Starting loop", " - Precision of G is ", 
-    Precision[G], " - Lost ", lastprec - currentprec, 
-    " digits of precision"];
+troppAltProj[d_, n_, \[Mu]_, X_?MatrixQ, opts : OptionsPattern[]] :=
+ Block[{wprec, gprec, $MinPrecision, $MaxPrecision, bound, G, const, interval,
+  error, T, \[Lambda], V, first, s, D, U},
+  wprec = OptionValue[WorkingPrecision];
+  gprec = OptionValue[PrecisionGoal];
+  Which[
+   wprec === Automatic && gprec === Automatic,
+   wprec = MachinePrecision; gprec = 15,
+   wprec === Automatic && gprec =!= Automatic,
+   If[gprec === MachinePrecision, wprec = MachinePrecision, wprec = 2*gprec],
+   wprec =!= Automatic && gprec === Automatic,
+   If[wprec === MachinePrecision, gprec = MachinePrecision, gprec = wprec/2]
    ];
-  For[t = 1, t <= T, t++,
-   If[Divisible[t, OptionValue[UpdateInterval]],
-    lastprec = currentprec;
-    currentprec = Precision[G];
-    Print[CurrentDate[], " - Iteration ", t, " - Precision of G is ", 
-     Precision[G], " - Lost ", lastprec - currentprec, 
-     " digits of precision"]
-    ];
-   For[i = 1, i <= n, i++,
-    For[j = 1, j <= n, j++,
-     If[i == j, G[[i, j]] = 1,
-      If[Abs@G[[i, j]] > \[Mu], 
-       G[[i, j]] = G[[i, j]]/Abs[G[[i, j]]]*\[Mu]]
-      ]
-     ]
-    ];
+  $MinPrecision = $MaxPrecision = wprec;
+  bound = 5*10^(-gprec);
+  G = SetPrecision[X\[ConjugateTranspose] . X, wprec];
+  const = ConstantArray[0, Dimensions[G]];
+  interval = OptionValue[UpdateInterval];
+  If[interval != Infinity,
+   Print[CurrentDate[], " - Starting loop"]];
+  error = Abs[Max@Abs@UpperTriangularize[G, 1] - \[Mu]]/\[Mu];
+  T = OptionValue[MaxIterations];
+  Do[
+   G = G*\[Mu]/Clip[Abs[G], {\[Mu], Infinity}];
+   Do[G[[i, i]] = 1, {i, 1, n}];
    G = (G + G\[ConjugateTranspose])/2;
-   {dd, V} = Chop@Eigensystem[G];
-   ind = Ordering[dd, All, Greater];
-   Vs = V[[ind]];
-   first = dd[[1 ;; d]];
-   sumfirst := Plus @@ first;
-   If[sumfirst > n,
-    While[sumfirst > n,
-     k = Plus @@ (If[# > 0, 1, 0] & /@ dd);
-     gammapart = (sumfirst - n)/k;
-     first = (first - 
-         gammapart) (If[# > 0, 1, 0] & /@ (first - gammapart));
+   {\[Lambda], V} = Chop@Eigensystem[G];
+   V = V[[Ordering[\[Lambda], All, Greater]]];
+   first = \[Lambda][[1 ;; d]];
+   s = Total[first];
+   If[s > n,
+    While[(s = Total[first]) > n,
+     first = Ramp[first - (s - n)/Count[\[Lambda], _?Positive]];
      ],
-    first += (n - sumfirst)/d;
+    first += (n - s)/d;
     ];
-   newD = ConstantArray[0, {Length[dd], Length[dd]}];
-   newD[[1 ;; d, 1 ;; d]] = DiagonalMatrix[first];
-   G = Transpose[Vs] . newD . Vs\[Conjugate];
-   ];
+   D = const;
+   D[[1 ;; d, 1 ;; d]] = DiagonalMatrix[first];
+   G = Transpose[V] . D . V\[Conjugate];
+   If[Divisible[t, 100],
+    error = Abs[Max@Abs@UpperTriangularize[G, 1] - \[Mu]]/\[Mu];
+    If[error < bound, Break[]];
+    ];
+   If[Divisible[t, interval],
+    Print[CurrentDate[], " - Iteration ", t,
+        " - Current precision = ", -N@Log[10, error]]
+    ],
+   {t, T}];
   D = DiagonalMatrix@Diagonal[G];
   G = # . G . # &@Inverse[Sqrt[D]];
   G = (G + G\[ConjugateTranspose])/2;
   {U, D, V} = SingularValueDecomposition[G, UpTo[d]];
   (U . Sqrt[D])\[ConjugateTranspose]
   ]
+ResourceFunction["AddCodeCompletion"]["troppAltProj"][
+  None, None, None, RepeatOptions[troppAltProj, 1]];
