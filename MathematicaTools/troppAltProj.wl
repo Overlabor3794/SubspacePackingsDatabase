@@ -98,6 +98,6 @@ troppAltProj[d_, n_, \[Mu]_, Y_ : Automatic, opts : OptionsPattern[]] :=
   G = (G + G\[ConjugateTranspose])/2;
   {U, D, V} = SingularValueDecomposition[G, UpTo[d]];
   (U . Sqrt[D])\[ConjugateTranspose]
-  ] /; MatrixQ[Y]
+  ] /; MatrixQ[Y] || Y === Automatic
 ResourceFunction["AddCodeCompletion"]["troppAltProj"][
   None, None, None, RepeatOptions[troppAltProj, 1]];
