@@ -10,27 +10,34 @@
 (* If "RationalCoefficients" is set to True, instead use Rationalize on coefficeints *)
 (* "SimplificationMethod" is the function used to simplfy the algebraic numbers
    to be output by exactifyTuple *)
-(* If "NumericalRefinement" is set to true, instead of simplifying, approximate
+(* If "NumericalRefinement" is set to True, instead of simplifying, approximate
    to higher precision and then apply RootApproximant again *)
 (* Increase the precision by a factor of "RefinementFactor" when using
    "NumericalRefinement" *)
 Options[exactifyTuple] = {"RationalCoefficients" -> False,
    "SimplificationMethod" -> RootReduce, "NumericalRefinement" -> False,
-   "RefinementFactor" -> 10};
+   "RefinementFactor" -> 10, Parallelize -> False};
 exactifyTuple[\[Alpha]_, OptionsPattern[]] :=
- Module[{SM, RF, deg, ESP, X, f, roots},
-  SM = OptionValue["SimplificationMethod"];
-  RF = OptionValue["RefinementFactor"];
+ Module[{seqPara, deg, ESP, X, f, prec, roots, SM},
+  If[OptionValue[Parallelize],
+   SetAttributes[seqPara, HoldAll];
+   seqPara[expr_] := Parallelize[expr, Method -> "FinestGrained"],
+   seqPara = Identity;
+   ];
   deg = Length[\[Alpha]];
   ESP = CoefficientList[Expand[Times @@ (X - \[Alpha])], X];
   If[OptionValue["RationalCoefficients"],
-    ESP = Rationalize[ESP, 10^(-0.75 Precision[\[Alpha]])],
-    ESP = RootApproximant[ESP]];
+   ESP = Rationalize[ESP, 10^(-0.75 Precision[\[Alpha]])],
+   ESP = seqPara@RootApproximant[ESP];
+   ];
   f = ESP . #^Range[0, deg] &;
   If[OptionValue["NumericalRefinement"],
-    roots = N[Root[f, #] & /@ Range[deg], RF*Precision[\[Alpha]]];
-    roots = RootApproximant[roots],
-    roots = SM[Root[f, #] & /@ Range[deg]]];
+   prec = OptionValue["RefinementFactor"]*Precision[\[Alpha]];
+   roots = seqPara[N[Root[f, #], prec] & /@ Range[deg]];
+   roots = seqPara@RootApproximant[roots],
+   SM = OptionValue["SimplificationMethod"];
+   roots = seqPara[SM@Root[f, #] & /@ Range[deg]];
+   ];
   First /@ Nearest[roots, \[Alpha]]
   ]
 ResourceFunction["AddCodeCompletion"]["exactifyTuple"][
