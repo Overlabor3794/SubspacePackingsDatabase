@@ -32,10 +32,11 @@ ResourceFunction["AddCodeCompletion"]["rand"][RepeatOptions[rand, 2]];
 (* minimize p-frame potential with QuasiNewton *)
 (* vector list, p, options *)
 Options[MinPhiQNp] = {Method -> "QuasiNewton", MaxIterations -> 1000};
-Options[MinPhiQNp] = Join[Options[MinPhiQNp], Options[FindMinimum]];
+Options[MinPhiQNp] = ReplaceOptions[Options[FindMinimum], Options[MinPhiQNp]];
 MinPhiQNp[Phi0_, p_, opts : OptionsPattern[]] := Module[{d, n, min},
   {d, n} = Dimensions[Phi0];
-  min = FindMinimum[pFramePotential[PhiVar[d, n], p], varcons[Phi0], opts];
+  min = FindMinimum[pFramePotential[PhiVar[d, n], p], varcons[Phi0],
+     opts, Method -> "QuasiNewton", MaxIterations -> 1000];
   min[[2]] = normalizeSO[PhiVar[d, n] /. min[[2]]];
   min
   ]
@@ -48,7 +49,8 @@ Options[MinPhiPA] = {Method -> "PrincipalAxis"};
 Options[MinPhiPA] = Join[Options[MinPhiPA], Options[FindMinimum]];
 MinPhiPA[Phi0_, opts : OptionsPattern[]] := Module[{d, n, min},
   {d, n} = Dimensions[Phi0];
-  min = FindMinimum[Coherence[PhiVar[d, n]], varcons[Phi0], opts];
+  min = FindMinimum[Coherence[PhiVar[d, n]], varcons[Phi0],
+     opts, Method -> "PrincipalAxis"];
   min[[2]] = normalizeSO[PhiVar[d, n] /. min[[2]]];
   min
   ]
