@@ -1,5 +1,9 @@
 (* ::Package:: *)
 
+(* Replaces default option values in opts with those in rules *)
+ReplaceOptions[opts_, rules_] :=
+  opts /. MapThread[(#1 -> _) -> #2 &, {First /@ rules, rules}]
+
 (* Used with resource function "AddCodeCompletion" to add completion for
    optional arguments *)
 RepeatOptions[fn_, extra_ : 0] := Module[{k, opts},
