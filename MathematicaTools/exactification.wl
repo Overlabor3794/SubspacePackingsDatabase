@@ -65,14 +65,14 @@ ResourceFunction["AddCodeCompletion"]["exactifyTP"][
 
 (* Exactify a lookup table of triple products naively using RootApproximant *)
 Options[exactifyLUTalt] = {Parallelize -> False};
-exactifyLUTalt[LUT_, OptionsPattern[]] := Module[{distinct},
-  distinct = Select[LUT[[1]], Im[#] >= 0 &];
+exactifyLUTalt[LUT_, OptionsPattern[]] := Module[{seqPara, distinct},
   If[OptionValue[Parallelize],
-   SetSharedVariable[distinct];
-   ParallelDo[distinct[[i]] = RootApproximant[distinct[[i]]],
-     {i, Length[distinct]}, Method -> "FinestGrained"],
-   distinct = RootApproximant[distinct];
+   SetAttributes[seqPara, HoldAll];
+   seqPara[expr_] := Parallelize[expr, Method -> "FinestGrained"],
+   seqPara = Identity;
    ];
+  distinct = Select[LUT[[1]], Im[#] >= 0 &];
+  distinct = seqPara@RootApproximant[distinct];
   distinct = DeleteDuplicates@Join[distinct, Conjugate[distinct]];
   distinct = First /@ Nearest[distinct, LUT[[1]]];
   {distinct, LUT[[2]]}
