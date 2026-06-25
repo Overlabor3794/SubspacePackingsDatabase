@@ -7,6 +7,7 @@
 
 
 (* Exactification using elementary symmetric polynomials and RootApproximant *)
+(* Assumes that elements of "tuple" come in complex conjugate pairs (or are real) *)
 (* If "RationalCoefficients" is set to True, instead use Rationalize on coefficeints *)
 (* "SimplificationMethod" is the function used to simplfy the algebraic numbers
    to be output by exactifyTuple *)
@@ -17,28 +18,34 @@
 Options[exactifyTuple] = {"RationalCoefficients" -> False,
    "SimplificationMethod" -> RootReduce, "NumericalRefinement" -> False,
    "RefinementFactor" -> 10, Parallelize -> False};
-exactifyTuple[\[Alpha]_, OptionsPattern[]] :=
- Module[{seqPara, deg, ESP, X, f, prec, roots, SM},
+exactifyTuple[tuple_, OptionsPattern[]] :=
+ Module[{seqPara, deg, ESP, X, f, roots, incr, j, nrprec, SM},
   If[OptionValue[Parallelize],
    SetAttributes[seqPara, HoldAll];
    seqPara[expr_] := Parallelize[expr, Method -> "FinestGrained"],
    seqPara = Identity;
    ];
-  deg = Length[\[Alpha]];
-  ESP = CoefficientList[Expand[Times @@ (X - \[Alpha])], X];
+  deg = Length[tuple];
+  ESP = CoefficientList[Expand[Times @@ (X - tuple)], X];
   If[OptionValue["RationalCoefficients"],
-   ESP = Rationalize[ESP, 10^(-0.75 Precision[\[Alpha]])],
+   ESP = Rationalize[ESP, 10^(-0.75 Precision[tuple])],
    ESP = seqPara@RootApproximant[ESP];
    ];
-  f = ESP . #^Range[0, deg] &;
-  If[OptionValue["NumericalRefinement"],
-   prec = OptionValue["RefinementFactor"]*Precision[\[Alpha]];
-   roots = seqPara[N[Root[f, #], prec] & /@ Range[deg]];
-   roots = seqPara@RootApproximant[roots],
-   SM = OptionValue["SimplificationMethod"];
-   roots = seqPara[SM@Root[f, #] & /@ Range[deg]];
+  f = ESP . X^Range[0, deg];
+  roots = {};
+  incr = 1;
+  For[j = 1, j <= deg, j+= incr,
+   AppendTo[roots, Root[f, j]];
+   If[incr == 1 && Im[roots[[-1]]] =!= 0, incr = 2];
    ];
-  First /@ Nearest[roots, \[Alpha]]
+  If[OptionValue["NumericalRefinement"],
+   nrprec = OptionValue["RefinementFactor"]*Precision[tuple];
+   roots = seqPara[RootApproximant@N[#, nrprec] & /@ roots],
+   SM = OptionValue["SimplificationMethod"];
+   roots = seqPara[SM[#] & /@ roots];
+   ];
+  roots = DeleteDuplicates@Join[roots, Conjugate[roots]];
+  Flatten@Nearest[roots, tuple, 1]
   ]
 ResourceFunction["AddCodeCompletion"]["exactifyTuple"][
   None, RepeatOptions[exactifyTuple]];
@@ -74,7 +81,7 @@ exactifyLUTalt[LUT_, OptionsPattern[]] := Module[{seqPara, distinct},
   distinct = Select[LUT[[1]], Im[#] >= 0 &];
   distinct = seqPara@RootApproximant[distinct];
   distinct = DeleteDuplicates@Join[distinct, Conjugate[distinct]];
-  distinct = First /@ Nearest[distinct, LUT[[1]]];
+  distinct = Flatten@Nearest[distinct, LUT[[1]], 1];
   {distinct, LUT[[2]]}
   ]
 ResourceFunction["AddCodeCompletion"]["exactifyLUTalt"][
