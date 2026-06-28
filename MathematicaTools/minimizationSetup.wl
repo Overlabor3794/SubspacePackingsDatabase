@@ -67,33 +67,46 @@ MinPhiPA[Phi0_, opts : OptionsPattern[]] := Module[{d, n, min},
 ResourceFunction["AddCodeCompletion"]["MinPhiPA"][None, RepeatOptions[MinPhiPA]];
 
 (* ETF conditions *)
-tightnessIdealGenerators[d_, n_] := Flatten[Table[
-    PhiVar[d, n][[All, k]] - (d/n) Sum[(PhiVar[d, n][[All, j]]\[Conjugate] . 
-        PhiVar[d, n][[All, k]]) PhiVar[d, n][[All, j]], {j, 1, n}], {k, 1, n}]];
-
-equiangularWelchIdealGenerators[d_, n_] := Flatten[Table[
-    (PhiVar[d, n][[All, i]]\[Conjugate] . PhiVar[d, n][[All, j]])
-        (PhiVar[d, n][[All, j]]\[Conjugate] . PhiVar[d, n][[All, i]]) -
-        Welch[d, n]^2, {i, 1, n}, {j, i + 1, n}]];
-
-unitNormIdealGenerators[d_, n_] := 
-  Table[PhiVar[d, n][[All, i]]\[Conjugate] . PhiVar[d, n][[All, i]] - 1, {i, 1, n}];
-
-(* The functions below attempt to refine the precision of ETFs using the
-   equations an ETF satisfies. They currently do not work very well. You should
-   use MinPhiQNp with p=4 instead [or figure out how to improve this]. *)
-Options[etfRefine] = {WorkingPrecision -> MachinePrecision, 
-   "TightnessIdealGenerators" -> False};
-etfRefine[Phi0_, OptionsPattern[]] := Module[{d, n, idealGenerators, TID},
-  {d, n} = Dimensions[Phi0];
-  TID = If[OptionValue["TightnessIdealGenerators"],
-    tightnessIdealGenerators[d, n],
-    {}];
-  idealGenerators = Join[unitNormIdealGenerators[d, n],
-    equiangularWelchIdealGenerators[d, n], TID];
-  PhiVar[d, n] /. FindRoot[idealGenerators .
-     RandomInteger[10, {Length[idealGenerators], 2 d n}], varcons[Phi0],
-    WorkingPrecision -> OptionValue[WorkingPrecision]]
+(* The optional argument "generators" can be either a (case insensitive) string or
+   a list of strings specifying the ideal generators to be returned by the function.
+	 The possible strings are "Tight", "EquiangularWelch", and "UnitNorm" *)
+idealGenerators[d_, n_, gen_ : {"Tight", "EquiangularWelch", "UnitNorm"}] :=
+ Module[{ReVar, ImVar, ReVarT, ImVarT, ReG, ImG, absGsq, ReTight,
+  ImTight, tight, welch, unit, genRules},
+  ReVar = RePhiVar[d, n];
+  ImVar = ImPhiVar[d, n];
+  ReVarT = Transpose[ReVar];
+  ImVarT = Transpose[ImVar];
+  ReG = ReVarT . ReVar + ImVarT . ImVar;
+  ImG = ReVarT . ImVar - ImVarT . ReVar;
+  absGsq = ReG^2 + ImG^2;
+  ReTight = ReVar . ReVarT + ImVar . ImVarT - (n/d) IdentityMatrix[d];
+  ImTight = ImVar . ReVarT - ReVar . ImVarT;
+  tight = ReTight^2 + ImTight^2;
+  welch = (Flatten[absGsq[[#, # + 1 ;;]] & /@ Range[n]] - Welch[d, n]^2)^2;
+  unit = (Diagonal[ReG] - 1)^2 + Diagonal[ImG]^2;
+  genRules = {"tight" -> tight, "equiangularwelch" -> welch, "unitnorm" -> unit};
+  ToLowerCase[gen] /. genRules
   ]
-ResourceFunction["AddCodeCompletion"]["etfRefine"][
-  None, RepeatOptions[etfRefine]];
+ResourceFunction["AddCodeCompletion"]["idealGenerators"][
+  None, None, {"Tight", "EquiangularWelch", "UnitNorm"}];
+
+(* Refines the precision of an ETF using the equations it satisfies. *)
+(* Option "IdealGenerators" can be used to specify the generators used by the
+   function. Default value is {"Tight", "EquiangularWelch", "UnitNorm"} *)
+Options[refineETF] = ReplaceOptions[Options[FindMinimum], {MaxIterations -> 1000}];
+Options[refineETF] = Prepend[Options[refineETF],
+    "IdealGenerators" -> {"Tight", "EquiangularWelch", "UnitNorm"}];
+refineETF[Phi0_, opts : OptionsPattern[]] :=
+ Module[{d, n, fopts, gen, f, min},
+  {d, n} = Dimensions[Phi0];
+  gen = OptionValue["IdealGenerators"];
+  If[gen === {}, gen = {"Tight", "EquiangularWelch", "UnitNorm"}];
+  f = Total[idealGenerators[d, n, gen], Infinity];
+  fopts = FilterRules[{opts}, Options[FindMinimum]];
+  min = FindMinimum[f, varcons[Phi0], Evaluate[fopts], MaxIterations -> 1000];
+  min[[2]] = PhiVar[d, n] /. min[[2]];
+  min
+  ]
+ResourceFunction["AddCodeCompletion"]["refineETF"][
+  None, RepeatOptions[refineETF]];
