@@ -11,7 +11,7 @@ ImPhiVar[d_, n_] := Table[b[j, k], {j, 1, d}, {k, 1, n}];
 PhiVar[d_, n_] := Table[a[j, k] + b[j, k] I, {j, 1, d}, {k, 1, n}];
 
 (* p-frame potential in terms of variables *)
-VarFP[d_, n_, p_] := Module[{ReVar, ImVar, ReG, ImG, norm},
+VarFP[d_, n_, p_] := Block[{a, b, ReVar, ImVar, ReG, ImG, norm},
   ReVar = RePhiVar[d, n];
   ImVar = ImPhiVar[d, n];
   ReG = Transpose[ReVar] . ReVar + Transpose[ImVar] . ImVar;
@@ -22,7 +22,7 @@ VarFP[d_, n_, p_] := Module[{ReVar, ImVar, ReG, ImG, norm},
   ]
 
 (* list of initial values for variables *)
-varcons[Phi0_] := Module[{d, n},
+varcons[Phi0_] := Block[{a, b, d, n},
   {d, n} = Dimensions[Phi0];
   Join[Transpose@{Flatten@RePhiVar[d, n], Re[#]},
        Transpose@{Flatten@ImPhiVar[d, n], Im[#]}
@@ -43,7 +43,7 @@ ResourceFunction["AddCodeCompletion"]["rand"][RepeatOptions[rand, 2]];
 (* vector list, p, options *)
 Options[MinPhiQNp] = {Method -> "QuasiNewton", MaxIterations -> 1000};
 Options[MinPhiQNp] = ReplaceOptions[Options[FindMinimum], Options[MinPhiQNp]];
-MinPhiQNp[Phi0_, p_, opts : OptionsPattern[]] := Module[{d, n, min},
+MinPhiQNp[Phi0_, p_, opts : OptionsPattern[]] := Block[{a, b, d, n, min},
   {d, n} = Dimensions[Phi0];
   min = FindMinimum[VarFP[d, n, p], varcons[Phi0], opts,
      Method -> "QuasiNewton", MaxIterations -> 1000];
@@ -57,7 +57,7 @@ ResourceFunction["AddCodeCompletion"]["MinPhiQNp"][
 (* vector list, options *)
 Options[MinPhiPA] = {Method -> "PrincipalAxis"};
 Options[MinPhiPA] = ReplaceOptions[Options[FindMinimum], Options[MinPhiPA]];
-MinPhiPA[Phi0_, opts : OptionsPattern[]] := Module[{d, n, min},
+MinPhiPA[Phi0_, opts : OptionsPattern[]] := Block[{a, b, d, n, min},
   {d, n} = Dimensions[Phi0];
   min = FindMinimum[Coherence[PhiVar[d, n]], varcons[Phi0],
      opts, Method -> "PrincipalAxis"];
@@ -71,8 +71,8 @@ ResourceFunction["AddCodeCompletion"]["MinPhiPA"][None, RepeatOptions[MinPhiPA]]
    a list of strings specifying the ideal generators to be returned by the function.
 	 The possible strings are "Tight", "EquiangularWelch", and "UnitNorm" *)
 idealGenerators[d_, n_, gen_ : {"Tight", "EquiangularWelch", "UnitNorm"}] :=
- Module[{ReVar, ImVar, ReVarT, ImVarT, ReG, ImG, absGsq, ReTight,
-  ImTight, tight, welch, unit, genRules},
+ Block[{a, b, ReVar, ImVar, ReVarT, ImVarT, ReG, ImG, absGsq,
+  ReTight, ImTight, tight, welch, unit, genRules},
   ReVar = RePhiVar[d, n];
   ImVar = ImPhiVar[d, n];
   ReVarT = Transpose[ReVar];
@@ -98,7 +98,7 @@ Options[refineETF] = ReplaceOptions[Options[FindMinimum], {MaxIterations -> 1000
 Options[refineETF] = Prepend[Options[refineETF],
     "IdealGenerators" -> {"Tight", "EquiangularWelch", "UnitNorm"}];
 refineETF[Phi0_, opts : OptionsPattern[]] :=
- Module[{d, n, fopts, gen, f, min},
+ Block[{a, b, d, n, fopts, gen, f, min},
   {d, n} = Dimensions[Phi0];
   gen = OptionValue["IdealGenerators"];
   If[gen === {}, gen = {"Tight", "EquiangularWelch", "UnitNorm"}];
