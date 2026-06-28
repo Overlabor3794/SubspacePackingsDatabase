@@ -6,17 +6,27 @@
 
 
 (* variable vector list *)
-PhiVar[d_, n_] := Table[a[i, j] + b[i, j] I, {i, 1, d}, {j, 1, n}];
+RePhiVar[d_, n_] := Table[a[j, k], {j, 1, d}, {k, 1, n}];
+ImPhiVar[d_, n_] := Table[b[j, k], {j, 1, d}, {k, 1, n}];
+PhiVar[d_, n_] := Table[a[j, k] + b[j, k] I, {j, 1, d}, {k, 1, n}];
+
+(* p-frame potential in terms of variables *)
+VarFP[d_, n_, p_] := Module[{ReVar, ImVar, ReG, ImG, norm},
+  ReVar = RePhiVar[d, n];
+  ImVar = ImPhiVar[d, n];
+  ReG = Transpose[ReVar] . ReVar + Transpose[ImVar] . ImVar;
+  ImG = Transpose[ReVar] . ImVar - Transpose[ImVar] . ReVar;
+  norm = Diagonal[ReG + ImG];
+  {ReG, ImG} = UpperTriangularize[#, 1] & /@ {ReG, ImG};
+  Total[((ReG^2 + ImG^2) / Outer[Times, norm, norm])^(p/2), 2]
+  ]
 
 (* list of initial values for variables *)
 varcons[Phi0_] := Module[{d, n},
   {d, n} = Dimensions[Phi0];
-  Join[
-   Transpose@{Flatten@Table[a[i, j], {i, 1, d}, {j, 1, n}], 
-     Re[Flatten[Phi0]]},
-   Transpose@{Flatten@Table[b[i, j], {i, 1, d}, {j, 1, n}], 
-     Im[Flatten[Phi0]]}
-   ]
+  Join[Transpose@{Flatten@RePhiVar[d, n], Re[#]},
+       Transpose@{Flatten@ImPhiVar[d, n], Im[#]}
+      ] &@ Flatten[Phi0]
   ]
 
 (* random seed vector list *)
@@ -35,8 +45,8 @@ Options[MinPhiQNp] = {Method -> "QuasiNewton", MaxIterations -> 1000};
 Options[MinPhiQNp] = ReplaceOptions[Options[FindMinimum], Options[MinPhiQNp]];
 MinPhiQNp[Phi0_, p_, opts : OptionsPattern[]] := Module[{d, n, min},
   {d, n} = Dimensions[Phi0];
-  min = FindMinimum[pFramePotential[PhiVar[d, n], p], varcons[Phi0],
-     opts, Method -> "QuasiNewton", MaxIterations -> 1000];
+  min = FindMinimum[VarFP[d, n, p], varcons[Phi0], opts,
+     Method -> "QuasiNewton", MaxIterations -> 1000];
   min[[2]] = normalizeSO[PhiVar[d, n] /. min[[2]]];
   min
   ]
@@ -46,7 +56,7 @@ ResourceFunction["AddCodeCompletion"]["MinPhiQNp"][
 (* minimize coherence with PrincipalAxis [OFTEN FAILS] *)
 (* vector list, options *)
 Options[MinPhiPA] = {Method -> "PrincipalAxis"};
-Options[MinPhiPA] = Join[Options[MinPhiPA], Options[FindMinimum]];
+Options[MinPhiPA] = ReplaceOptions[Options[FindMinimum], Options[MinPhiPA]];
 MinPhiPA[Phi0_, opts : OptionsPattern[]] := Module[{d, n, min},
   {d, n} = Dimensions[Phi0];
   min = FindMinimum[Coherence[PhiVar[d, n]], varcons[Phi0],
