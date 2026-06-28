@@ -94,3 +94,4 @@ ResourceFunction["AddCodeCompletion"]["pFramePotential"][
 (* Welch bound [lower bound on the coherence], acheived if and only if Phi is an
    equiangular tight frame *)
 Welch[d_, n_] := Sqrt[(n - d)/(d (n - 1))]
+Welch[{d_, n_}] := Welch[d, n]
