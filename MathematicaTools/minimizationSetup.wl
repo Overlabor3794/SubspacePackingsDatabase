@@ -20,6 +20,18 @@ VarFP[d_, n_, p_] := Block[{a, b, ReVar, ImVar, ReG, ImG, norm},
   {ReG, ImG} = UpperTriangularize[#, 1] & /@ {ReG, ImG};
   Total[((ReG^2 + ImG^2) / Outer[Times, norm, norm])^(p/2), 2]
   ]
+  
+(* Polynomial avatar for p-frame potential in terms of variables *)
+(* Should have same minima for some sufficiently large c *)
+VarPolyFP[d_, n_, p_, c_] := Block[{a, b, ReVar, ImVar, ReG, ImG, norm},
+  ReVar = RePhiVar[d, n];
+  ImVar = ImPhiVar[d, n];
+  ReG = Transpose[ReVar] . ReVar + Transpose[ImVar] . ImVar;
+  ImG = Transpose[ReVar] . ImVar - Transpose[ImVar] . ReVar;
+  norm = Diagonal[ReG + ImG];
+  {ReG, ImG} = UpperTriangularize[#, 1] & /@ {ReG, ImG};
+  Total[(ReG^2 + ImG^2)^(p/2), 2] + c Total[(norm - 1)^2]
+  ]
 
 (* list of initial values for variables *)
 varcons[Phi0_] := Block[{a, b, d, n},
@@ -41,6 +53,20 @@ ResourceFunction["AddCodeCompletion"]["rand"][RepeatOptions[rand, 2]];
 
 (* minimize p-frame potential with QuasiNewton *)
 (* vector list, p, options *)
+Options[MinPhiPolyQNp] = {Method -> "QuasiNewton", MaxIterations -> 1000};
+Options[MinPhiPolyQNp] = ReplaceOptions[Options[FindMinimum], Options[MinPhiPolyQNp]];
+MinPhiPolyQNp[Phi0_, p_, c_, opts : OptionsPattern[]] := Block[{a, b, d, n, min},
+  {d, n} = Dimensions[Phi0];
+  min = FindMinimum[VarPolyFP[d, n, p, c], varcons[Phi0], opts,
+     Method -> "QuasiNewton", MaxIterations -> 1000];
+  min[[2]] = normalizeSO[PhiVar[d, n] /. min[[2]]];
+  min
+  ]
+ResourceFunction["AddCodeCompletion"]["MinPhiPolyQNp"][
+  None, None, RepeatOptions[MinPhiPolyQNp]];
+
+(* minimize polynomial avatar for p-frame potential with QuasiNewton *)
+(* vector list, c, p, options *)
 Options[MinPhiQNp] = {Method -> "QuasiNewton", MaxIterations -> 1000};
 Options[MinPhiQNp] = ReplaceOptions[Options[FindMinimum], Options[MinPhiQNp]];
 MinPhiQNp[Phi0_, p_, opts : OptionsPattern[]] := Block[{a, b, d, n, min},
