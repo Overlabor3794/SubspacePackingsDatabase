@@ -53,20 +53,6 @@ ResourceFunction["AddCodeCompletion"]["rand"][RepeatOptions[rand, 2]];
 
 (* minimize p-frame potential with QuasiNewton *)
 (* vector list, p, options *)
-Options[MinPhiPolyQNp] = {Method -> "QuasiNewton", MaxIterations -> 1000};
-Options[MinPhiPolyQNp] = ReplaceOptions[Options[FindMinimum], Options[MinPhiPolyQNp]];
-MinPhiPolyQNp[Phi0_, p_, c_, opts : OptionsPattern[]] := Block[{a, b, d, n, min},
-  {d, n} = Dimensions[Phi0];
-  min = FindMinimum[VarPolyFP[d, n, p, c], varcons[Phi0], opts,
-     Method -> "QuasiNewton", MaxIterations -> 1000];
-  min[[2]] = normalizeSO[PhiVar[d, n] /. min[[2]]];
-  min
-  ]
-ResourceFunction["AddCodeCompletion"]["MinPhiPolyQNp"][
-  None, None, RepeatOptions[MinPhiPolyQNp]];
-
-(* minimize polynomial avatar for p-frame potential with QuasiNewton *)
-(* vector list, c, p, options *)
 Options[MinPhiQNp] = {Method -> "QuasiNewton", MaxIterations -> 1000};
 Options[MinPhiQNp] = ReplaceOptions[Options[FindMinimum], Options[MinPhiQNp]];
 MinPhiQNp[Phi0_, p_, opts : OptionsPattern[]] := Block[{a, b, d, n, min},
@@ -78,6 +64,20 @@ MinPhiQNp[Phi0_, p_, opts : OptionsPattern[]] := Block[{a, b, d, n, min},
   ]
 ResourceFunction["AddCodeCompletion"]["MinPhiQNp"][
   None, None, RepeatOptions[MinPhiQNp]];
+
+(* minimize polynomial avatar for p-frame potential with QuasiNewton *)
+(* vector list, p, c, options *)
+Options[MinPhiPolyQNp] = {Method -> "QuasiNewton", MaxIterations -> 1000};
+Options[MinPhiPolyQNp] = ReplaceOptions[Options[FindMinimum], Options[MinPhiPolyQNp]];
+MinPhiPolyQNp[Phi0_, p_, c_, opts : OptionsPattern[]] := Block[{a, b, d, n, min},
+  {d, n} = Dimensions[Phi0];
+  min = FindMinimum[VarPolyFP[d, n, p, c], varcons[Phi0], opts,
+     Method -> "QuasiNewton", MaxIterations -> 1000];
+  min[[2]] = normalizeSO[PhiVar[d, n] /. min[[2]]];
+  min
+  ]
+ResourceFunction["AddCodeCompletion"]["MinPhiPolyQNp"][
+  None, None, RepeatOptions[MinPhiPolyQNp]];
 
 (* minimize coherence with PrincipalAxis [OFTEN FAILS] *)
 (* vector list, options *)
