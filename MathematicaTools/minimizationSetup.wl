@@ -182,5 +182,5 @@ ResourceFunction["AddCodeCompletion"]["MinPhiPoly"][
 (* Option "IdealGenerators" can be used to specify the generators used by the
    function. Default value is {"Tight", "EquiangularWelch", "UnitNorm"} *)
 Options[refineETF] = ReplaceOptions[Options[iMinPhi], {Method -> "Newton"}];
-refineETF[Phi0_, opts : OptionsPattern[]] := iMinPhi[Phi0, 0, refineETF, opts]
+refineETF[Phi0_, opts : OptionsPattern[]] := iMinPhi[Phi0, 0, 0, refineETF, opts]
 ResourceFunction["AddCodeCompletion"]["refineETF"][None, RepeatOptions[refineETF]];
