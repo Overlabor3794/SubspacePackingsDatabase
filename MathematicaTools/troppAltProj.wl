@@ -6,7 +6,7 @@
 
 (* Initial seed *)
 Options[InitMat] = {WorkingPrecision -> MachinePrecision};
-InitMat[d_, n_, opts : OptionsPattern[]] := Module[{\[Tau], T, X, t, x, cor},
+InitMat[d_, n_, opts : OptionsPattern[]] := Module[{\[Tau], T, X, t, x},
   \[Tau] = 0.9;
   T = 10000;
   While[True,
@@ -14,10 +14,8 @@ InitMat[d_, n_, opts : OptionsPattern[]] := Module[{\[Tau], T, X, t, x, cor},
    X = X / Norm[X];
    t = 0;
    While[t < T,
-    x = Flatten@rand[1, d];
-    x = Normalize[x];
-    cor = Max@Abs[X\[ConjugateTranspose] . x];
-    If[cor < \[Tau],
+    x = Normalize@Flatten@rand[1, d];
+    If[Max@Abs[X\[ConjugateTranspose] . x] < \[Tau],
      X = MapThread[Append, {X, x}];
      t = 0;
      If[Dimensions[X][[2]] == n, t = T],
