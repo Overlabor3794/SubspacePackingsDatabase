@@ -130,17 +130,25 @@ mproductfromGM[G_, Indices_] := Module[{m, wrapIndices},
 
 mproductfromSO[Phi_, Indices_] := mproductfromSO[GMfromSO[Phi], Indices];
 
+TupleFromIndex = ResourceFunction["TupleFromIndex"];
+
 (* Compute the sum of all m-products with index set of shape Indices_ *)
 (* For example, the index set {a, b, c, a, b, c} yields the second moment of the
    triple products *)
 (* I think these generate all S_n-invariants [i.e., projective permutation
    unitary invariants] *)
-generalSnInvariantfromGM[G_, Indices_] := Module[{IndexSet, n, k},
+Options[generalSnInvariantfromGM] = {"LimitMemory" -> False};
+generalSnInvariantfromGM[G_, Indices_, opts : OptionsPattern[]] := Block[{IndexSet, n, k, m, j},
   IndexSet = DeleteDuplicates[Indices];
   n = Length[G];
   k = Length[IndexSet];
-  Plus @@ (mproductfromGM[G, #] &
+  m = 0;
+  If[OptionValue["LimitMemory"],
+  For[j = 1, j <= n^k, m = m + mproductfromGM[G, Indices /. Thread[IndexSet -> (1 + TupleFromIndex[j,k])]]; j++],
+  m = Plus @@ (mproductfromGM[G, #] &
       /@ (Indices /. (Thread[IndexSet -> #] & /@ Tuples[Range[n], k])))
+      ];
+  m
   ]
 
 generalSnInvariantfromSO[Phi_, Indices_] := 
