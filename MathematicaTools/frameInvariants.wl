@@ -151,5 +151,6 @@ generalSnInvariantfromGM[G_, Indices_, opts : OptionsPattern[]] := Block[{IndexS
   m
   ]
 
-generalSnInvariantfromSO[Phi_, Indices_] := 
-  generalSnInvariantfromGM[GMfromSO[Phi], Indices];
+Options[generalSnInvariantfromSO] = Options[generalSnInvariantfromGM];
+generalSnInvariantfromSO[Phi_, Indices_, opts : OptionsPattern[]] := 
+  generalSnInvariantfromGM[GMfromSO[Phi], Indices, opts];
