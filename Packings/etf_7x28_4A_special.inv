@@ -1,4 +1,4 @@
-LABEL = {etf_7x28_4a}
+LABEL = {etf_7x28_4A_special}
 TAGS = {real}
 NUMBER_TPS = {4}
 COHERENCE_APPROX = {0.333333333333333}
